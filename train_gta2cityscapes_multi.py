@@ -156,7 +156,7 @@ def adjust_learning_rate(optimizer, i_iter):
 
 def adjust_learning_rate_D(optimizer, i_iter):
     lr = lr_poly(args.learning_rate_D, i_iter, args.num_steps, args.power)
-    optimizer.param_groups[0]['lr'] = lr
+    optimizer.param_groups[0]['lr'] = lr #param_groups may mean those of the conv and the others of the batch normalisation
     if len(optimizer.param_groups) > 1:
         optimizer.param_groups[1]['lr'] = lr * 10
 

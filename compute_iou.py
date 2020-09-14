@@ -6,8 +6,8 @@ from os.path import join
 
 
 def fast_hist(a, b, n):
-    k = (a >= 0) & (a < n)
-    return np.bincount(n * a[k].astype(int) + b[k], minlength=n ** 2).reshape(n, n)
+    k = (a >= 0) & (a < n) #get the indecies of the lables between 0 and 19
+    return np.bincount(n * a[k].astype(int) + b[k], minlength=n ** 2).reshape(n, n) #finds the number of repeations of an element in the arrays and returns this number at index = the element
 
 
 def per_class_iu(hist):

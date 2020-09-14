@@ -106,7 +106,7 @@ class Classifier_Module(nn.Module):
         self.conv2d_list = nn.ModuleList()
         for dilation, padding in zip(dilation_series, padding_series):
             self.conv2d_list.append(
-                nn.Conv2d(inplanes, num_classes, kernel_size=3, stride=1, padding=padding, dilation=dilation, bias=True))
+                nn.Conv2d(inplanes, num_classes, kernel_size=3, stride=1, padding=padding, dilation=dilation, bias=True))#since k=3 and padding=dilation, in the equation of w-out there are 2 terms that cancel each other
 
         for m in self.conv2d_list:
             m.weight.data.normal_(0, 0.01)
@@ -153,13 +153,13 @@ class ResNetMulti(nn.Module):
                 nn.Conv2d(self.inplanes, planes * block.expansion,
                           kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion, affine=affine_par))
-        for i in downsample._modules['1'].parameters():
+        for i in downsample._modules['1'].parameters(): #ignore the BN parameters
             i.requires_grad = False
         layers = []
         layers.append(block(self.inplanes, planes, stride, dilation=dilation, downsample=downsample))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes, dilation=dilation))
+            layers.append(block(self.inplanes, planes, dilation=dilation)) #ignoring the downsampling and the stride
 
         return nn.Sequential(*layers)
 
