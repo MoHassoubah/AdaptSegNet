@@ -22,7 +22,7 @@ class GTA5DataSet(data.Dataset):
         # self.mean_bgr = np.array([104.00698793, 116.66876762, 122.67891434])
         self.img_ids = [i_id.strip() for i_id in open(list_path)]
         if not max_iters==None:
-            self.img_ids = self.img_ids * int(np.ceil(float(max_iters) / len(self.img_ids)))
+            self.img_ids = self.img_ids * int(np.ceil(float(max_iters) / len(self.img_ids)))# so for every itiration we find a data that we can path and the __next__ fn returns something
         self.files = []
 
         self.id_to_trainid = {7: 0, 8: 1, 11: 2, 12: 3, 13: 4, 17: 5,
@@ -51,8 +51,8 @@ class GTA5DataSet(data.Dataset):
         name = datafiles["name"]
 
         # resize
-        image = image.resize(self.crop_size, Image.BICUBIC)
-        label = label.resize(self.crop_size, Image.NEAREST)
+        image = image.resize(self.crop_size, Image.BICUBIC)#BICUBIC is the filter type used when resizing may be to estimate the target pixles from the source pixels(cubic spline interpolation in a 4x4 environment)
+        label = label.resize(self.crop_size, Image.NEAREST)#neatest neighbour
 
         image = np.asarray(image, np.float32)
         label = np.asarray(label, np.float32)
@@ -63,7 +63,7 @@ class GTA5DataSet(data.Dataset):
             label_copy[label == k] = v
 
         size = image.shape
-        image = image[:, :, ::-1]  # change to BGR
+        image = image[:, :, ::-1]  # change to BGR #::-1--> if 1,2,3 returns 3,2,1s
         image -= self.mean
         image = image.transpose((2, 0, 1))
 

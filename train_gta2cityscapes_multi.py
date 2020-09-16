@@ -210,13 +210,13 @@ def main():
     if not os.path.exists(args.snapshot_dir):
         os.makedirs(args.snapshot_dir)
 
-    trainloader = data.DataLoader(
+    trainloader = data.DataLoader( #data.DataLoader retuns type torch
         GTA5DataSet(args.data_dir, args.data_list, max_iters=args.num_steps * args.iter_size * args.batch_size,
                     crop_size=input_size,
                     scale=args.random_scale, mirror=args.random_mirror, mean=IMG_MEAN),
         batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
 
-    trainloader_iter = enumerate(trainloader)
+    trainloader_iter = enumerate(trainloader)#index and data pair
 
     targetloader = data.DataLoader(cityscapesDataSet(args.data_dir_target, args.data_list_target,
                                                      max_iters=args.num_steps * args.iter_size * args.batch_size,
@@ -261,7 +261,7 @@ def main():
 
         writer = SummaryWriter(args.log_dir)
 
-    for i_iter in range(args.num_steps):
+    for i_iter in range(args.num_steps): #the ratio between the num_steps and the number of images in the gta5 I believe it should be retained (it's = 10)
 
         loss_seg_value1 = 0
         loss_adv_target_value1 = 0
@@ -295,8 +295,8 @@ def main():
             _, batch = trainloader_iter.__next__()
 
             images, labels, _, _ = batch
-            images = images.to(device)
-            labels = labels.long().to(device)
+            images = images.to(device) #RGB, 3xLxW
+            labels = labels.long().to(device)#value from 0-255
 
             pred1, pred2 = model(images)
             pred1 = interp(pred1)
