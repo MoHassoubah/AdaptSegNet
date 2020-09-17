@@ -21,6 +21,8 @@ from utils.loss import CrossEntropy2d
 from dataset.gta5_dataset import GTA5DataSet
 from dataset.cityscapes_dataset import cityscapesDataSet
 
+from dataset.kitti.parser import Parser
+
 IMG_MEAN = np.array((104.00698793, 116.66876762, 122.67891434), dtype=np.float32)
 
 MODEL = 'DeepLab'
@@ -137,6 +139,19 @@ def get_arguments():
                         help="choose adaptation set.")
     parser.add_argument("--gan", type=str, default=GAN,
                         help="choose the GAN objective.")
+    parser.add_argument(
+      '--data_cfg', '-dc',
+      type=str,
+      required=False,
+      default='dataset/kitti/config/labels/semantic-kitti.yaml',
+      help='Classification yaml cfg file. See /config/labels for sample. No default!',
+    )
+    parser.add_argument(
+      '--arch_cfg', '-ac',
+      type=str,
+      required=True,
+      help='Architecture yaml cfg file. See /config/arch for sample. No default!',
+  )
     return parser.parse_args()
 
 
@@ -165,6 +180,39 @@ def main():
     """Create the model and start the training."""
 
     device = torch.device("cuda" if not args.cpu else "cpu")
+    
+    # open arch config file
+    try:
+      print("Opening arch config file %s" % args.arch_cfg)
+      ARCH = yaml.safe_load(open(args.arch_cfg, 'r'))
+    except Exception as e:
+      print(e)
+      print("Error opening arch yaml file.")
+      quit()
+
+    # open data config file
+    try:
+      print("Opening data config file %s" % args.data_cfg)
+      DATA = yaml.safe_load(open(args.data_cfg, 'r'))
+    except Exception as e:
+      print(e)
+      print("Error opening data yaml file.")
+      quit()
+    
+    loc_parser = Parser(root=self.datadir,
+                          train_sequences=DATA["split"]["train"],
+                          valid_sequences=DATA["split"]["valid"],
+                          test_sequences=None,
+                          labels=DATA["labels"],
+                          color_map=DATA["color_map"],
+                          learning_map=DATA["learning_map"],
+                          learning_map_inv=DATA["learning_map_inv"],
+                          sensor=ARCH["dataset"]["sensor"],
+                          max_points=ARCH["dataset"]["max_points"],
+                          batch_size=ARCH["train"]["batch_size"],
+                          workers=ARCH["train"]["workers"],
+                          gt=True,
+                          shuffle_train=True)
 
     w, h = map(int, args.input_size.split(','))
     input_size = (w, h)
