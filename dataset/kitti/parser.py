@@ -19,6 +19,7 @@ def is_label(filename):
 class SemanticKitti(Dataset):
 
   def __init__(self, root,    # directory where data is
+               max_iters=None,# maximum number of training itirations
                sequences,     # sequences for this data (e.g. [1,3,4,6])
                labels,        # label dict: (e.g 10: "car")
                color_map,     # colors dict bgr (e.g 10: [255, 0, 0])
@@ -28,7 +29,7 @@ class SemanticKitti(Dataset):
                max_points=150000,   # max number of points present in dataset
                gt=True):            # send ground truth?
     # save deats
-    self.root = root#os.path.join(root, "sequences")
+    self.root = os.path.join(root, "sequences") #root
     self.sequences = sequences
     self.labels = labels
     self.color_map = color_map
@@ -72,9 +73,10 @@ class SemanticKitti(Dataset):
     assert(isinstance(self.sequences, list))
 
     # placeholder for filenames
-    self.scan_files = []
-    self.label_files = []
+    self.files = []
 
+    scan_files_accum = []
+    label_files_accum = []
     # fill in with names, checking that all sequences are complete
     for seq in self.sequences:
       # to string
@@ -83,11 +85,11 @@ class SemanticKitti(Dataset):
       print("parsing seq {}".format(seq))
 
       # get paths for each
-      # scan_path = os.path.join(self.root, seq, "velodyne")
-      # label_path = os.path.join(self.root, seq, "labels")
+      scan_path = os.path.join(self.root, seq, "velodyne")
+      label_path = os.path.join(self.root, seq, "labels")
       
-      scan_path = os.path.join(self.root, "volodyne_points", "data_odometry_velodyne", "dataset", "sequences", seq, "velodyne")
-      label_path = os.path.join(self.root, "data_odometry_labels", "dataset", "sequences", seq, "labels")
+      # scan_path = os.path.join(self.root, "volodyne_points", "data_odometry_velodyne", "dataset", "sequences", seq, "velodyne")
+      # label_path = os.path.join(self.root, "data_odometry_labels", "dataset", "sequences", seq, "labels")
 
       # get files
       scan_files = [os.path.join(dp, f) for dp, dn, fn in os.walk(
@@ -100,21 +102,32 @@ class SemanticKitti(Dataset):
         assert(len(scan_files) == len(label_files))
 
       # extend list
-      self.scan_files.extend(scan_files)
-      self.label_files.extend(label_files)
+      scan_files_accum.extend(scan_files)
+      label_files_accum.extend(label_files)
 
     # sort for correspondance
-    self.scan_files.sort()
-    self.label_files.sort()
+    scan_files_accum.sort()
+    label_files_accum.sort()
+    
+    for i in range(len(self.scan_files)):
+        self.files.append({
+            "scan": scan_files_accum[i],
+            "label": label_files_accum[i]
+        })
+        
+    
 
-    print("Using {} scans from sequences {}".format(len(self.scan_files),
+    print("Using {} scans from sequences {}".format(len(self.files),
                                                     self.sequences))
+                                                    
+    if not max_iters==None:
+            self.files = self.files * int(np.ceil(float(max_iters) / len(self.files)))
 
   def __getitem__(self, index):
     # get item in tensor shape
-    scan_file = self.scan_files[index]
+    scan_file = self.files[index]["scan"]
     if self.gt:
-      label_file = self.label_files[index]
+      label_file = self.files[index]["label"]
 
     # open a semantic laserscan
     if self.gt:
@@ -187,7 +200,7 @@ class SemanticKitti(Dataset):
     return proj, proj_mask, proj_labels, unproj_labels, path_seq, path_name, proj_x, proj_y, proj_range, unproj_range, proj_xyz, unproj_xyz, proj_remission, unproj_remissions, unproj_n_points
 
   def __len__(self):
-    return len(self.scan_files)
+    return len(self.files)
 
   @staticmethod
   def map(label, mapdict):
@@ -220,6 +233,7 @@ class Parser():
   # standard conv, BN, relu
   def __init__(self,
                root,              # directory for data
+               max_iters=None,    # maximum number of training itirations
                train_sequences,   # sequences to train
                valid_sequences,   # sequences to validate.
                test_sequences,    # sequences to test (if none, don't get)
@@ -237,6 +251,7 @@ class Parser():
 
     # if I am training, get the dataset
     self.root = root
+    self.max_iters = max_iters
     self.train_sequences = train_sequences
     self.valid_sequences = valid_sequences
     self.test_sequences = test_sequences
@@ -256,6 +271,7 @@ class Parser():
 
     # Data loading code
     self.train_dataset = SemanticKitti(root=self.root,
+                                       max_iters=self.max_iters,
                                        sequences=self.train_sequences,
                                        labels=self.labels,
                                        color_map=self.color_map,
@@ -274,7 +290,8 @@ class Parser():
     assert len(self.trainloader) > 0
     self.trainiter = iter(self.trainloader)
 
-    self.valid_dataset = SemanticKitti(root=self.root,
+    if self.valid_sequences:
+      selfself.valid_dataset = SemanticKitti(root=self.root,
                                        sequences=self.valid_sequences,
                                        labels=self.labels,
                                        color_map=self.color_map,
@@ -284,14 +301,14 @@ class Parser():
                                        max_points=max_points,
                                        gt=self.gt)
 
-    self.validloader = torch.utils.data.DataLoader(self.valid_dataset,
+      self.validloader = torch.utils.data.DataLoader(self.valid_dataset,
                                                    batch_size=self.batch_size,
                                                    shuffle=False,
                                                    num_workers=self.workers,
                                                    pin_memory=True,
                                                    drop_last=True)
-    assert len(self.validloader) > 0
-    self.validiter = iter(self.validloader)
+      assert len(self.validloader) > 0
+      self.validiter = iter(self.validloader)
 
     if self.test_sequences:
       self.test_dataset = SemanticKitti(root=self.root,

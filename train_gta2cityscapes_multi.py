@@ -22,6 +22,7 @@ from dataset.gta5_dataset import GTA5DataSet
 from dataset.cityscapes_dataset import cityscapesDataSet
 
 from dataset.kitti.parser import Parser
+import yaml
 
 IMG_MEAN = np.array((104.00698793, 116.66876762, 122.67891434), dtype=np.float32)
 
@@ -29,16 +30,16 @@ MODEL = 'DeepLab'
 BATCH_SIZE = 1
 ITER_SIZE = 1
 NUM_WORKERS = 4
-DATA_DIRECTORY = './data/GTA5'
+DATA_DIRECTORY = './data/GTA5' #should be the path of the kitti LiDAR data
 DATA_LIST_PATH = './dataset/gta5_list/train.txt'
 IGNORE_LABEL = 255
-INPUT_SIZE = '1280,720'
+INPUT_SIZE = '2048,64'
 DATA_DIRECTORY_TARGET = './data/Cityscapes'
 DATA_LIST_PATH_TARGET = './dataset/cityscapes_list/train.txt'
 INPUT_SIZE_TARGET = '1024,512'
 LEARNING_RATE = 2.5e-4
 MOMENTUM = 0.9
-NUM_CLASSES = 19
+NUM_CLASSES = 20
 NUM_STEPS = 250000
 NUM_STEPS_STOP = 150000  # early stopping
 POWER = 0.9
@@ -149,7 +150,8 @@ def get_arguments():
     parser.add_argument(
       '--arch_cfg', '-ac',
       type=str,
-      required=True,
+      required=False,
+      default='dataset/kitti/config/arch/sensor_dataset.yaml',
       help='Architecture yaml cfg file. See /config/arch for sample. No default!',
   )
     return parser.parse_args()
@@ -199,9 +201,10 @@ def main():
       print("Error opening data yaml file.")
       quit()
     
-    loc_parser = Parser(root=self.datadir,
+    kitti_parser = Parser(root=args.data_dir,
+                          max_iters=args.num_steps * args.iter_size * args.batch_size,
                           train_sequences=DATA["split"]["train"],
-                          valid_sequences=DATA["split"]["valid"],
+                          valid_sequences=None,
                           test_sequences=None,
                           labels=DATA["labels"],
                           color_map=DATA["color_map"],
@@ -258,13 +261,13 @@ def main():
     if not os.path.exists(args.snapshot_dir):
         os.makedirs(args.snapshot_dir)
 
-    trainloader = data.DataLoader( #data.DataLoader retuns type torch
-        GTA5DataSet(args.data_dir, args.data_list, max_iters=args.num_steps * args.iter_size * args.batch_size,
-                    crop_size=input_size,
-                    scale=args.random_scale, mirror=args.random_mirror, mean=IMG_MEAN),
-        batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
+    # trainloader = data.DataLoader( #data.DataLoader retuns type torch
+        # GTA5DataSet(args.data_dir, args.data_list, max_iters=args.num_steps * args.iter_size * args.batch_size,
+                    # crop_size=input_size,
+                    # scale=args.random_scale, mirror=args.random_mirror, mean=IMG_MEAN),
+        # batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
 
-    trainloader_iter = enumerate(trainloader)#index and data pair
+    # trainloader_iter = enumerate(trainloader)#index and data pair
 
     targetloader = data.DataLoader(cityscapesDataSet(args.data_dir_target, args.data_list_target,
                                                      max_iters=args.num_steps * args.iter_size * args.batch_size,
@@ -340,18 +343,18 @@ def main():
 
             # train with source
 
-            _, batch = trainloader_iter.__next__()
+            batch = kitti_parser.get_train_batch()#trainloader_iter.__next__()
 
-            images, labels, _, _ = batch
-            images = images.to(device) #RGB, 3xLxW
-            labels = labels.long().to(device)#value from 0-255
+            in_vol, proj_mask, proj_labels, _, path_seq, path_name, _, _, _, _, _, _, _, _, _ = batch #images, labels, _, _ = batch
+            in_vol = in_vol.to(device) #5channels input --#old RGB, 3xLxW
+            proj_labels = proj_labels.long().to(device)#value from 0-255
 
-            pred1, pred2 = model(images)
+            pred1, pred2 = model(in_vol)
             pred1 = interp(pred1)
             pred2 = interp(pred2)
 
-            loss_seg1 = seg_loss(pred1, labels)
-            loss_seg2 = seg_loss(pred2, labels)
+            loss_seg1 = seg_loss(pred1, proj_labels)
+            loss_seg2 = seg_loss(pred2, proj_labels)
             loss = loss_seg2 + args.lambda_seg * loss_seg1
 
             # proper normalization
