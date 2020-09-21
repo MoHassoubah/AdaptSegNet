@@ -42,6 +42,13 @@ for filename in scan_files:
     scan_y = points[:, 1]
     scan_z = points[:, 2]
     
+    print("/n")
+    print("max_depth = " + str(np.max(depth)))
+    print("max_x = " + str(np.max(scan_x)))
+    print("max_y = " + str(np.max(scan_y)))
+    print("max_z = " + str(np.max(scan_z)))
+    print("max_remissions = " + str(np.max(remissions)))
+    
     mean_depth = mean_depth + np.sum(depth)
     mean_x = mean_x + np.sum(scan_x)
     mean_y = mean_y + np.sum(scan_y)
@@ -100,11 +107,11 @@ mean_z = mean_z / num_points
 mean_emmission = mean_emmission / num_points
 
 print("means->depth, x, y,z, emission")    
-print("mean_depth" + str(mean_depth))
-print("mean_x" + str(mean_x))
-print("mean_y" + str(mean_y))
-print("mean_z" + str(mean_z))
-print("mean_emmission" + str(mean_emmission))
+print("mean_depth= " + str(mean_depth))
+print("mean_x = " + str(mean_x))
+print("mean_y = " + str(mean_y))
+print("mean_z = " + str(mean_z))
+print("mean_emmission = " + str(mean_emmission))
 
 std_depth = 0.0
 std_x = 0.0
@@ -140,8 +147,8 @@ std_z = std_z / num_points
 std_emission = std_emission / num_points
 
 print("/nStds->depth, x, y,z, emission")
-print("std_depth" + str(np.sqrt(std_depth)))  
-print("std_x" + str(np.sqrt(std_x)))
-print("std_y" + str(np.sqrt(std_y)))  
-print("std_z" + str(np.sqrt(std_z))) 
-print("std_emission" + str(np.sqrt(std_emission)))    
+print("std_depth = " + str(np.sqrt(std_depth)))  
+print("std_x = " + str(np.sqrt(std_x)))
+print("std_y = " + str(np.sqrt(std_y)))  
+print("std_z = " + str(np.sqrt(std_z))) 
+print("std_emission = " + str(np.sqrt(std_emission)))    
