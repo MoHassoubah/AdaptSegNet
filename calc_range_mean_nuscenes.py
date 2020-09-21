@@ -1,6 +1,13 @@
 import os
 import numpy as np
 
+EXTENSIONS_SCAN = ['.bin']
+EXTENSIONS_LABEL = ['.label']
+
+
+def is_scan(filename):
+  return any(filename.endswith(ext) for ext in EXTENSIONS_SCAN)
+
 scan_path = "/home/admin1/lidar_datasets/nuscenes/samples/LIDAR_TOP"
 scan_files = [os.path.join(dp, f) for dp, dn, fn in os.walk(
           os.path.expanduser(scan_path)) for f in fn if is_scan(f)]
