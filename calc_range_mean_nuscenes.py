@@ -32,11 +32,11 @@ def is_scan(filename):
   return any(filename.endswith(ext) for ext in EXTENSIONS_SCAN)
 
 scan_path = "/home/admin1/mohammed_hassoubah/lidar_datasets/nuscenes/samples/LIDAR_TOP"
-# scan_files = [os.path.join(dp, f) for dp, dn, fn in os.walk(
-          # os.path.expanduser(scan_path)) for f in fn if is_scan(f)]
+scan_files = [os.path.join(dp, f) for dp, dn, fn in os.walk(
+          os.path.expanduser(scan_path)) for f in fn if is_scan(f)]
           
-scan_files = [os.path.join(scan_path, f) for f in scan_path if is_scan(f)]
-          
+# scan_files = [os.path.join(scan_path, f) for f in scan_path if is_scan(f)]
+print(scan_files)
 # laser parameters
 # fov_up = 10.0 / 180.0 * np.pi      # field of view up in rad
 # fov_down = -30.0 / 180.0 * np.pi  # field of view down in rad
