@@ -19,7 +19,7 @@ lidar_data = nusc.get('sample_data', my_sample['data'][sensor])
 
 print(lidar_data)
 
-lidar_pc = LidarPointCloud.from_file(osp('/home/admin1/mohammed_hassoubah/lidar_datasets/nuscenes', lidar_data["filename"]))
+lidar_pc = LidarPointCloud.from_file(osp.join('/home/admin1/mohammed_hassoubah/lidar_datasets/nuscenes', lidar_data["filename"]))
 
 print(lidar_pc)
 
