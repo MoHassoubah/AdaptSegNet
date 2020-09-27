@@ -23,6 +23,10 @@ lidar_pc = LidarPointCloud.from_file(osp.join('/home/admin1/mohammed_hassoubah/l
 
 print(lidar_pc.points)
 print(lidar_pc.points.shape)
+print("max_x = " + str(np.max(lidar_pc.points[0,:])))
+print("max_y = " + str(np.max(lidar_pc.points[1,:])))
+print("max_z = " + str(np.max(lidar_pc.points[2,:])))
+print("max_remissions = " + str(np.max(lidar_pc.points[3,:])))
 
 # EXTENSIONS_SCAN = ['.bin']
 # EXTENSIONS_LABEL = ['.label']
