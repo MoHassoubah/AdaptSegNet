@@ -3,6 +3,8 @@ import numpy as np
 
 from nuscenes.nuscenes import NuScenes
 
+from nuscenes.utils.data_classes import LidarPointCloud
+
 nusc = NuScenes(version='v1.0-mini', dataroot='/home/admin1/mohammed_hassoubah/lidar_datasets/nuscenes', verbose=True)
 
 my_scene = nusc.scene[0]
@@ -15,6 +17,10 @@ sensor = 'LIDAR_TOP'
 lidar_data = nusc.get('sample_data', my_sample['data'][sensor])
 
 print(lidar_data)
+
+lidar_pc = LidarPointCloud.from_file(lidar_data["filename"])
+
+print(lidar_pc)
 
 # EXTENSIONS_SCAN = ['.bin']
 # EXTENSIONS_LABEL = ['.label']
