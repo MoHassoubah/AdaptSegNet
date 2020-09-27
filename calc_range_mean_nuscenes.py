@@ -3,7 +3,7 @@ import numpy as np
 
 from nuscenes.nuscenes import NuScenes
 
-nusc = NuScenes(version='v1.0-mini', dataroot='/mohammed_hassoubah/lidar_datasets/nuscenes', verbose=True)
+nusc = NuScenes(version='v1.0-mini', dataroot='~/mohammed_hassoubah/lidar_datasets/nuscenes', verbose=True)
 
 my_scene = nusc.scene[0]
 
