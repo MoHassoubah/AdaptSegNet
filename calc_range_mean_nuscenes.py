@@ -36,7 +36,6 @@ scan_files = [os.path.join(dp, f) for dp, dn, fn in os.walk(
           os.path.expanduser(scan_path)) for f in fn if is_scan(f)]
           
 # scan_files = [os.path.join(scan_path, f) for f in scan_path if is_scan(f)]
-print(scan_files[:10])
 # laser parameters
 # fov_up = 10.0 / 180.0 * np.pi      # field of view up in rad
 # fov_down = -30.0 / 180.0 * np.pi  # field of view down in rad
@@ -177,3 +176,6 @@ print("std_x = " + str(np.sqrt(std_x)))
 print("std_y = " + str(np.sqrt(std_y)))  
 print("std_z = " + str(np.sqrt(std_z))) 
 print("std_emission = " + str(np.sqrt(std_emission)))    
+
+
+print(scan_files[:10])
