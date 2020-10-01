@@ -1,0 +1,21 @@
+means->depth, x, y,z, emission
+#points = 951194816.0
+mean_depth= 9.348510395805711
+mean_x = -0.08803494651813032
+mean_y = -0.19697970886639926
+mean_z = -0.510999429163294
+mean_emmission = 17.73328291036439
+
+
+/nStds->depth, x, y,z, emission
+std_depth = 12.373689715832914
+std_x = 10.171344434607162
+std_y = 11.559411942072622
+std_z = 1.7660465188839276
+std_emission = 22.51083237143768
+
+in the vehicle frame
+x-kitti = y-nuscenes
+y-kitti = -x-nuscenes
+z-kitti = z- nuscenes
+
