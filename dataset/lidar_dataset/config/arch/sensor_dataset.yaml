@@ -26,7 +26,7 @@ train:
 # classification head parameters
 ################################################################################
 # dataset (to find parser)
-dataset:
+dataset_kitti:
   labels: "kitti"
   scans: "kitti"
   max_points: 150000 # max of any scan in dataset
@@ -50,3 +50,31 @@ dataset:
       - 6.91
       - 0.86
       - 0.16
+
+
+
+dataset_nuscenes:
+  labels: "nuscenes"
+  scans: "nuscenes"
+  max_points: 34880 # max of any scan in dataset
+  sensor:
+    name: "HDL32"
+    type: "spherical" # projective
+    fov_up: 11
+    fov_down: -30 
+    img_prop:
+      width: 2048
+      height: 64
+    img_means: #range,x,y,z,signal
+      - 9.35
+      - -0.088
+      - -0.197
+      - -0.511
+      - 17.73
+    img_stds: #range,x,y,z,signal
+      - 12.37
+      - 10.17
+      - 11.56
+      - 1.766
+      - 22.51
+    rot_ang_deg: 90

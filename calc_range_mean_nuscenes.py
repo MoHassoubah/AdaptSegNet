@@ -6,47 +6,48 @@ from nuscenes.nuscenes import NuScenes
 
 from nuscenes.utils.data_classes import LidarPointCloud
 
-nusc = NuScenes(version='v1.0-mini', dataroot='/home/admin1/mohammed_hassoubah/lidar_datasets/nuscenes', verbose=True)
+sensor = 'LIDAR_TOP'
+
+nusc = NuScenes(version='v1.0-trainval', dataroot='C:/lidar_datasets/nuscenes', verbose=True)
 
 my_scene = nusc.scene[0]
+print(len(nusc.scene))
 
 first_sample_token = my_scene['first_sample_token']
 
 my_sample = nusc.get('sample', first_sample_token)
 
-sensor = 'LIDAR_TOP'
 lidar_data = nusc.get('sample_data', my_sample['data'][sensor])
+lidar_seg = nusc.get('lidarseg', my_sample['data'][sensor]) #returns data as # # print(nusc.lidarseg[index])
 
 print(lidar_data)
+print("")
+print(lidar_seg)
+print(nusc.lidarseg[0])
 
-lidar_pc = LidarPointCloud.from_file(osp.join('/home/admin1/mohammed_hassoubah/lidar_datasets/nuscenes', lidar_data["filename"]))
+lidarseg_labels_filename = osp.join('C:/lidar_datasets/nuscenes', lidar_seg['filename'])
 
-print(lidar_pc.points)
-print(lidar_pc.points.shape)
-print("max_x = " + str(np.max(lidar_pc.points[0,:])))
-print("max_y = " + str(np.max(lidar_pc.points[1,:])))
-print("max_z = " + str(np.max(lidar_pc.points[2,:])))
-print("max_remissions = " + str(np.max(lidar_pc.points[3,:])))
+points_label = np.fromfile(lidarseg_labels_filename, dtype=np.uint8)
+print(points_label[:10])
 
-# EXTENSIONS_SCAN = ['.bin']
-# EXTENSIONS_LABEL = ['.label']
+# lidar_pc = LidarPointCloud.from_file(osp.join('C:/lidar_datasets/nuscenes', lidar_data["filename"]))
+
+# print(lidar_pc.points)
+# print(lidar_pc.points.shape)
+# print("max_x = " + str(np.max(lidar_pc.points[0,:])))
+# print("max_y = " + str(np.max(lidar_pc.points[1,:])))
+# print("max_z = " + str(np.max(lidar_pc.points[2,:])))
+# print("max_remissions = " + str(np.max(lidar_pc.points[3,:])))
 
 
-# def is_scan(filename):
-  # return any(filename.endswith(ext) for ext in EXTENSIONS_SCAN)
+# scan_files = [os.path.join(scan_path, f) for f in scan_path if is_scan(f)]
+# laser parameters
+# fov_up = 10.0 / 180.0 * np.pi      # field of view up in rad
+# fov_down = -30.0 / 180.0 * np.pi  # field of view down in rad
+# fov = abs(fov_down) + abs(fov_up)  # get field of view total in rad
 
-# scan_path = "/home/admin1/mohammed_hassoubah/lidar_datasets/nuscenes/samples/LIDAR_TOP"
-# scan_files = [os.path.join(dp, f) for dp, dn, fn in os.walk(
-          # os.path.expanduser(scan_path)) for f in fn if is_scan(f)]
-          
-# # scan_files = [os.path.join(scan_path, f) for f in scan_path if is_scan(f)]
-# # laser parameters
-# # fov_up = 10.0 / 180.0 * np.pi      # field of view up in rad
-# # fov_down = -30.0 / 180.0 * np.pi  # field of view down in rad
-# # fov = abs(fov_down) + abs(fov_up)  # get field of view total in rad
-
-# # proj_W = 2048
-# # proj_H = 32
+# proj_W = 2048
+# proj_H = 32
 
 # mean_depth = 0.0          
 # mean_x = 0.0
@@ -54,36 +55,63 @@ print("max_remissions = " + str(np.max(lidar_pc.points[3,:])))
 # mean_z = 0.0
 # mean_emmission = 0.0
 # num_points = 0.0
-          
-# for filename in scan_files:
-    # scan = np.fromfile(filename, dtype=np.float32)
-    # scan = scan.reshape((-1, 4))
-    # # put in attribute
-    # points = scan[:, 0:3]    # get xyz
-    # remissions = scan[:, 3]  # get remission
+# max_points_scan = 0
 
-    # # get depth of all points
-    # depth = np.linalg.norm(points, 2, axis=1)
+# # print(nusc.lidarseg[0])
 
-    # # get scan components
-    # scan_x = points[:, 0]
-    # scan_y = points[:, 1]
-    # scan_z = points[:, 2]
+# for idx in range(700):
+    # my_scene = nusc.scene[idx]
+    # # print(len(nusc.scene))
+
+    # first_sample_token = my_scene['first_sample_token']
     
-    # print("/n")
-    # print("max_depth = " + str(np.max(depth)))
-    # print("max_x = " + str(np.max(scan_x)))
-    # print("max_y = " + str(np.max(scan_y)))
-    # print("max_z = " + str(np.max(scan_z)))
-    # print("max_remissions = " + str(np.max(remissions)))
-    
-    # mean_depth = mean_depth + np.sum(depth)
-    # mean_x = mean_x + np.sum(scan_x)
-    # mean_y = mean_y + np.sum(scan_y)
-    # mean_z = mean_z + np.sum(scan_z)
-    # mean_emmission = mean_emmission + np.sum(remissions)
-    
-    # num_points = num_points + len(scan_x)
+    # my_sample = nusc.get('sample', first_sample_token)
+    # print(my_sample)
+
+    # while(my_sample['next'] != ''):
+        # lidar_data = nusc.get('sample_data', my_sample['data'][sensor])
+
+        # # print(lidar_data)
+
+        # lidar_pc = LidarPointCloud.from_file(osp.join('C:/lidar_datasets/nuscenes', lidar_data["filename"]))
+
+        # # put in attribute
+        # remissions = lidar_pc.points[3,:]  # get remission
+
+        # # get depth of all points
+        # depth = np.linalg.norm(lidar_pc.points[0:3,:], 2, axis=0)
+
+        # # get scan components
+        # scan_x = lidar_pc.points[0,:]
+        # scan_y = lidar_pc.points[1,:]
+        # scan_z = lidar_pc.points[2,:]
+        
+        # # print("")
+        # # print("max_depth = " + str(np.max(depth)))
+        # # print("max_x = " + str(np.max(scan_x)))
+        # # print("max_y = " + str(np.max(scan_y)))
+        # # print("max_z = " + str(np.max(scan_z)))
+        # # print("max_remissions = " + str(np.max(remissions)))
+        
+        # # print("/n")
+        # # print("depth[0] = " + str((depth[0])))
+        # # print("x[0] = " + str((scan_x[0])))
+        # # print("y[0] = " + str((scan_y[0])))
+        # # print("z[0] = " + str((scan_z[0])))
+        # # print("remissions[0] = " + str(np.max(remissions[0])))
+        
+        # mean_depth = mean_depth + np.sum(depth)
+        # mean_x = mean_x + np.sum(scan_x)
+        # mean_y = mean_y + np.sum(scan_y)
+        # mean_z = mean_z + np.sum(scan_z)
+        # mean_emmission = mean_emmission + np.sum(remissions)
+        
+        # num_points = num_points + len(scan_x)
+        
+        # if(max_points_scan < len(scan_x)):
+            # max_points_scan = len(scan_x)
+        
+        # my_sample = nusc.get('sample', my_sample['next'])
 
     # # # get angles of all points
     # # yaw = -np.arctan2(scan_y, scan_x)
@@ -134,6 +162,14 @@ print("max_remissions = " + str(np.max(lidar_pc.points[3,:])))
 # mean_z = mean_z / num_points
 # mean_emmission = mean_emmission / num_points
 
+# # mean_depth= 9.348510395805711
+# # mean_x = -0.08803494651813032
+# # mean_y = -0.19697970886639926
+# # mean_z = -0.510999429163294
+# # mean_emmission = 17.73328291036439
+
+# print("#points = " + str(num_points))
+# print("max # points per scan = " + str(max_points_scan))
 # print("means->depth, x, y,z, emission")    
 # print("mean_depth= " + str(mean_depth))
 # print("mean_x = " + str(mean_x))
@@ -147,32 +183,43 @@ print("max_remissions = " + str(np.max(lidar_pc.points[3,:])))
 # std_z = 0.0
 # std_emission = 0.0
 
-# for filename in scan_files:
-    # scan = np.fromfile(filename, dtype=np.float32)
-    # scan = scan.reshape((-1, 4))
-    # # put in attribute
-    # points = scan[:, 0:3]    # get xyz
-    # remissions = scan[:, 3]  # get remission
+# for idx in range(700):
+    # my_scene = nusc.scene[idx]
+    # # print(len(nusc.scene))
 
-    # # get depth of all points
-    # depth = np.linalg.norm(points, 2, axis=1)
+    # first_sample_token = my_scene['first_sample_token']
+    
+    # my_sample = nusc.get('sample', first_sample_token)
 
-    # # get scan components
-    # scan_x = points[:, 0]
-    # scan_y = points[:, 1]
-    # scan_z = points[:, 2]
+    # while(my_sample['next'] != ''):
+        # lidar_data = nusc.get('sample_data', my_sample['data'][sensor])
+
+        # # print(lidar_data)
+
+        # lidar_pc = LidarPointCloud.from_file(osp.join('C:/lidar_datasets/nuscenes', lidar_data["filename"]))
+
+        # # put in attribute
+        # remissions = lidar_pc.points[3,:]  # get remission
+
+        # # get depth of all points
+        # depth = np.linalg.norm(lidar_pc.points[0:3,:], 2, axis=0)
+
+        # # get scan components
+        # scan_x = lidar_pc.points[0,:]
+        # scan_y = lidar_pc.points[1,:]
+        # scan_z = lidar_pc.points[2,:]
     
-    # std_depth = std_depth + np.sum((depth - mean_depth)**2)
-    # std_x = std_x + np.sum((scan_x - mean_x)**2)
-    # std_y = std_y + np.sum((scan_y - mean_y)**2)
-    # std_z = std_z + np.sum((scan_z - mean_z)**2)
-    # std_emission = std_emission + np.sum((mean_emmission - mean_emmission)**2)
-    
-# std_depth = std_depth / num_points
-# std_x = std_x / num_points
-# std_y = std_y / num_points
-# std_z = std_z / num_points
-# std_emission = std_emission / num_points
+        # std_depth = std_depth + (np.sum((depth - mean_depth)**2)/num_points)
+        # std_x = std_x + (np.sum((scan_x - mean_x)**2)/num_points)
+        # std_y = std_y + (np.sum((scan_y - mean_y)**2)/num_points)
+        # std_z = std_z + (np.sum((scan_z - mean_z)**2)/num_points)
+        # std_emission = std_emission + (np.sum((remissions - mean_emmission)**2)/num_points)
+        
+        # my_sample = nusc.get('sample', my_sample['next'])
+        
+        
+   
+
 
 # print("/nStds->depth, x, y,z, emission")
 # print("std_depth = " + str(np.sqrt(std_depth)))  

@@ -2,10 +2,15 @@ import os
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from dataset.kitti.laserscan import LaserScan, SemLaserScan
+from dataset.lidar_dataset.laserscan import LaserScan, SemLaserScan
+
+from nuscenes.nuscenes import NuScenes
+
+from nuscenes.utils.data_classes import LidarPointCloud
 
 EXTENSIONS_SCAN = ['.bin']
 EXTENSIONS_LABEL = ['.label']
+NUSCENES_TRAIN_SIZE = 700
 
 
 def is_scan(filename):
@@ -27,7 +32,8 @@ class SemanticKitti(Dataset):
                learning_map_inv,    # inverse of previous (recover labels)
                sensor,              # sensor to parse scans from
                max_points=150000,   # max number of points present in dataset
-               gt=True):            # send ground truth?
+               gt=True,            # send ground truth?
+               nuscenes_dataset=False):         # nuscebes dataset?
     # save deats
     self.root = os.path.join(root, "sequences") #root
     self.sequences = sequences
@@ -46,6 +52,7 @@ class SemanticKitti(Dataset):
     self.sensor_fov_down = sensor["fov_down"]
     self.max_points = max_points
     self.gt = gt
+    self.nuscenes_dataset = nuscenes_dataset
 
     # get number of classes (can't be len(self.learning_map) because there
     # are multiple repeated entries, so the number that matters is how many
@@ -77,37 +84,55 @@ class SemanticKitti(Dataset):
 
     scan_files_accum = []
     label_files_accum = []
-    # fill in with names, checking that all sequences are complete
-    for seq in self.sequences:
-      # to string
-      seq = '{0:02d}'.format(int(seq))
+    if(self.nuscenes_dataset == False):
+        # fill in with names, checking that all sequences are complete
+        for seq in self.sequences:
+          # to string
+          seq = '{0:02d}'.format(int(seq))
 
-      print("parsing seq {}".format(seq))
+          print("parsing seq {}".format(seq))
 
-      # get paths for each
-      scan_path = os.path.join(self.root, seq, "velodyne")
-      label_path = os.path.join(self.root, seq, "labels")
-      
-      # scan_path = os.path.join(self.root, "volodyne_points", "data_odometry_velodyne", "dataset", "sequences", seq, "velodyne")
-      # label_path = os.path.join(self.root, "data_odometry_labels", "dataset", "sequences", seq, "labels")
+          # get paths for each
+          scan_path = os.path.join(self.root, seq, "velodyne")
+          label_path = os.path.join(self.root, seq, "labels")
+          
+          # scan_path = os.path.join(self.root, "volodyne_points", "data_odometry_velodyne", "dataset", "sequences", seq, "velodyne")
+          # label_path = os.path.join(self.root, "data_odometry_labels", "dataset", "sequences", seq, "labels")
 
-      # get files
-      scan_files = [os.path.join(dp, f) for dp, dn, fn in os.walk(
-          os.path.expanduser(scan_path)) for f in fn if is_scan(f)]
-      label_files = [os.path.join(dp, f) for dp, dn, fn in os.walk(
-          os.path.expanduser(label_path)) for f in fn if is_label(f)]
+          # get files
+          scan_files = [os.path.join(dp, f) for dp, dn, fn in os.walk(
+              os.path.expanduser(scan_path)) for f in fn if is_scan(f)]
+          label_files = [os.path.join(dp, f) for dp, dn, fn in os.walk(
+              os.path.expanduser(label_path)) for f in fn if is_label(f)]
 
-      # check all scans have labels
-      if self.gt:
-        assert(len(scan_files) == len(label_files))
+          # check all scans have labels
+          if self.gt:
+            assert(len(scan_files) == len(label_files))
 
-      # extend list
-      scan_files_accum.extend(scan_files)
-      label_files_accum.extend(label_files)
+          # extend list
+          scan_files_accum.extend(scan_files)
+          label_files_accum.extend(label_files)
 
-    # sort for correspondance
-    scan_files_accum.sort()
-    label_files_accum.sort()
+        # sort for correspondance
+        scan_files_accum.sort()
+        label_files_accum.sort()
+        
+    else:
+        for idx in range(NUSCENES_TRAIN_SIZE):
+            my_scene = nusc.scene[idx]
+
+            first_sample_token = my_scene['first_sample_token']
+
+            my_sample = nusc.get('sample', first_sample_token)
+            
+            while(my_sample['next'] != ''):
+                lidar_data = nusc.get('sample_data', my_sample['data'][sensor])
+                lidar_seg = nusc.get('lidarseg', my_sample['data'][sensor]) #returns data as # # print(nusc.lidarseg[index])
+                
+                scan_files_accum.append(osp.join(self.root, lidar_data["filename"]))
+                label_files_accum.append(osp.join(self.root, lidar_seg["filename"]))
+                
+                my_sample = nusc.get('sample', my_sample['next'])
     
     for i in range(len(self.scan_files)):
         self.files.append({
@@ -136,13 +161,15 @@ class SemanticKitti(Dataset):
                           H=self.sensor_img_H,
                           W=self.sensor_img_W,
                           fov_up=self.sensor_fov_up,
-                          fov_down=self.sensor_fov_down)
+                          fov_down=self.sensor_fov_down,
+                          nuscenes_dataset=self.nuscenes_dataset)
     else:
       scan = LaserScan(project=True,
                        H=self.sensor_img_H,
                        W=self.sensor_img_W,
                        fov_up=self.sensor_fov_up,
-                       fov_down=self.sensor_fov_down)
+                       fov_down=self.sensor_fov_down,
+                       nuscenes_dataset=self.nuscenes_dataset)
 
     # open and obtain scan
     scan.open_scan(scan_file)
@@ -232,21 +259,23 @@ class SemanticKitti(Dataset):
 class Parser():
   # standard conv, BN, relu
   def __init__(self,
-               root,              # directory for data
-               max_iters=None,    # maximum number of training itirations
-               train_sequences,   # sequences to train
-               valid_sequences,   # sequences to validate.
-               test_sequences,    # sequences to test (if none, don't get)
-               labels,            # labels in data
-               color_map,         # color for each label
-               learning_map,      # mapping for training labels
-               learning_map_inv,  # recover labels from xentropy
-               sensor,            # sensor to use
-               max_points,        # max points in each scan in entire dataset
-               batch_size,        # batch size for train and val
-               workers,           # threads to load data
-               gt=True,           # get gt?
-               shuffle_train=True):  # shuffle training set?
+               root,                            # directory for data
+               max_iters=None,                  # maximum number of training itirations
+               train_sequences,                 # sequences to train
+               valid_sequences,                 # sequences to validate.
+               test_sequences,                  # sequences to test (if none, don't get)
+               labels,                          # labels in data
+               color_map,                       # color for each label
+               learning_map,                    # mapping for training labels
+               learning_map_inv,                # recover labels from xentropy
+               sensor,                          # sensor to use
+               max_points,                      # max points in each scan in entire dataset
+               batch_size,                      # batch size for train and val
+               workers,                         # threads to load data
+               gt=True,                         # get gt?
+               shuffle_train=True,              # shuffle training set?
+               nuscenes_dataset=False):         # nuscebes dataset?
+               
     super(Parser, self).__init__()
 
     # if I am training, get the dataset
@@ -265,6 +294,7 @@ class Parser():
     self.workers = workers
     self.gt = gt
     self.shuffle_train = shuffle_train
+    self.nuscenes_dataset = nuscenes_dataset
 
     # number of classes that matters is the one for xentropy
     self.nclasses = len(self.learning_map_inv)
@@ -279,7 +309,8 @@ class Parser():
                                        learning_map_inv=self.learning_map_inv,
                                        sensor=self.sensor,
                                        max_points=max_points,
-                                       gt=self.gt)
+                                       gt=self.gt,
+                                       nuscenes_dataset=self.nuscenes_dataset)
 
     self.trainloader = torch.utils.data.DataLoader(self.train_dataset,
                                                    batch_size=self.batch_size,
@@ -299,7 +330,8 @@ class Parser():
                                        learning_map_inv=self.learning_map_inv,
                                        sensor=self.sensor,
                                        max_points=max_points,
-                                       gt=self.gt)
+                                       gt=self.gt,
+                                       nuscenes_dataset=self.nuscenes_dataset)
 
       self.validloader = torch.utils.data.DataLoader(self.valid_dataset,
                                                    batch_size=self.batch_size,
@@ -319,7 +351,8 @@ class Parser():
                                         learning_map_inv=self.learning_map_inv,
                                         sensor=self.sensor,
                                         max_points=max_points,
-                                        gt=False)
+                                        gt=False,
+                                        nuscenes_dataset=self.nuscenes_dataset)
 
       self.testloader = torch.utils.data.DataLoader(self.test_dataset,
                                                     batch_size=self.batch_size,

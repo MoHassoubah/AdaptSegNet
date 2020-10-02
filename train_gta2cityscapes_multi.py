@@ -21,7 +21,7 @@ from utils.loss import CrossEntropy2d
 from dataset.gta5_dataset import GTA5DataSet
 from dataset.cityscapes_dataset import cityscapesDataSet
 
-from dataset.kitti.parser import Parser
+from dataset.lidar_dataset.parser import Parser
 import yaml
 
 IMG_MEAN = np.array((104.00698793, 116.66876762, 122.67891434), dtype=np.float32)
@@ -144,14 +144,14 @@ def get_arguments():
       '--data_cfg', '-dc',
       type=str,
       required=False,
-      default='dataset/kitti/config/labels/semantic-kitti.yaml',
+      default='dataset/lidar_dataset/config/labels/semantic-kitti.yaml',
       help='Classification yaml cfg file. See /config/labels for sample. No default!',
     )
     parser.add_argument(
       '--arch_cfg', '-ac',
       type=str,
       required=False,
-      default='dataset/kitti/config/arch/sensor_dataset.yaml',
+      default='dataset/lidar_dataset/config/arch/sensor_dataset.yaml',
       help='Architecture yaml cfg file. See /config/arch for sample. No default!',
   )
     return parser.parse_args()
@@ -210,8 +210,8 @@ def main():
                           color_map=DATA["color_map"],
                           learning_map=DATA["learning_map"],
                           learning_map_inv=DATA["learning_map_inv"],
-                          sensor=ARCH["dataset"]["sensor"],
-                          max_points=ARCH["dataset"]["max_points"],
+                          sensor=ARCH["dataset_kitti"]["sensor"],
+                          max_points=ARCH["dataset_kitti"]["max_points"],
                           batch_size=ARCH["train"]["batch_size"],
                           workers=ARCH["train"]["workers"],
                           gt=True,
