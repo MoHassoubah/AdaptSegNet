@@ -19,3 +19,5 @@ x-kitti = y-nuscenes
 y-kitti = -x-nuscenes
 z-kitti = z- nuscenes
 
+total number annotated lidar points in nuscenes = 1,185,656,192
+

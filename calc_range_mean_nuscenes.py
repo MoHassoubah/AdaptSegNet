@@ -30,6 +30,10 @@ lidarseg_labels_filename = osp.join('C:/lidar_datasets/nuscenes', lidar_seg['fil
 points_label = np.fromfile(lidarseg_labels_filename, dtype=np.uint8)
 print(points_label[:10])
 
+print(nusc.list_lidarseg_categories(sort_by='count'))
+print("")
+print(nusc.lidarseg_idx2name_mapping)
+
 # lidar_pc = LidarPointCloud.from_file(osp.join('C:/lidar_datasets/nuscenes', lidar_data["filename"]))
 
 # print(lidar_pc.points)

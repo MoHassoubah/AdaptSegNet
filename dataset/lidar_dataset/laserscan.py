@@ -93,9 +93,18 @@ class LaserScan:
     # check remission makes sense
     if remissions is not None and not isinstance(remissions, np.ndarray):
       raise TypeError("Remissions should be numpy array")
-
+    
+    if(self.nuscenes_dataset == False)
     # put in attribute
-    self.points = points    # get xyz
+        self.points = points    # get xyz
+    else:
+        #rotate the nuscenes corrdinates to the kitti coordinates by 90 degrees
+        #in the kitti coordinates y-nuscenes is the x_kitti
+        #and -ve x-nuscnes is the y 
+        # x_kitti = np.copy(points[:,1])
+        # y_kitti = -1 * points[:,0]
+        self.points = np.stack((points[:,1], -1*points[:,0], points[:,2]), axis=1)
+        
     if remissions is not None:
       self.remissions = remissions  # get remission
     else:
@@ -235,9 +244,10 @@ class SemLaserScan(LaserScan):
       raise TypeError("Filename should be string type, "
                       "but was {type}".format(type=str(type(filename))))
 
-    # check extension is a laserscan
-    if not any(filename.endswith(ext) for ext in self.EXTENSIONS_LABEL):
-      raise RuntimeError("Filename extension is not valid label file.")
+    if(self.nuscenes_dataset == False):
+        # check extension is a laserscan
+        if not any(filename.endswith(ext) for ext in self.EXTENSIONS_LABEL):
+          raise RuntimeError("Filename extension is not valid label file.")
 
     # if all goes well, open label
     label = np.fromfile(filename, dtype=np.int32)
