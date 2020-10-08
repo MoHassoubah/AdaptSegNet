@@ -56,7 +56,7 @@ dataset_kitti:
 dataset_nuscenes:
   labels: "nuscenes"
   scans: "nuscenes"
-  max_points: 34880 # max of any scan in dataset
+  max_points: 34816 # max of points in any sample scan in dataset
   sensor:
     name: "HDL32"
     type: "spherical" # projective
@@ -64,17 +64,17 @@ dataset_nuscenes:
     fov_down: -30 
     img_prop:
       width: 2048
-      height: 64
+      height: 32
     img_means: #range,x,y,z,signal
-      - 9.35
-      - -0.088
-      - -0.197
+      - 9.34
+      - -0.096
+      - -0.19
       - -0.511
-      - 17.73
+      - 17.72
     img_stds: #range,x,y,z,signal
-      - 12.37
-      - 10.17
-      - 11.56
-      - 1.766
-      - 22.51
+      - 12.41
+      - 10.16
+      - 11.6
+      - 1.765
+      - 22.52
     rot_ang_deg: 90

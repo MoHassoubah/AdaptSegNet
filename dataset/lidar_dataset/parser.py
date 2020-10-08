@@ -1,4 +1,5 @@
 import os
+import os.path as osp
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -6,7 +7,7 @@ from dataset.lidar_dataset.laserscan import LaserScan, SemLaserScan
 
 from nuscenes.nuscenes import NuScenes
 
-from nuscenes.utils.data_classes import LidarPointCloud
+# from nuscenes.utils.data_classes import LidarPointCloud
 
 EXTENSIONS_SCAN = ['.bin']
 EXTENSIONS_LABEL = ['.label']
@@ -24,18 +25,18 @@ def is_label(filename):
 class SemanticKitti(Dataset):
 
   def __init__(self, root,    # directory where data is
-               max_iters=None,# maximum number of training itirations
                sequences,     # sequences for this data (e.g. [1,3,4,6])
                labels,        # label dict: (e.g 10: "car")
                color_map,     # colors dict bgr (e.g 10: [255, 0, 0])
                learning_map,  # classes to learn (0 to N-1 for xentropy)
                learning_map_inv,    # inverse of previous (recover labels)
                sensor,              # sensor to parse scans from
+               max_iters=None,# maximum number of training itirations
                max_points=150000,   # max number of points present in dataset
                gt=True,            # send ground truth?
                nuscenes_dataset=False):         # nuscebes dataset?
     # save deats
-    self.root = os.path.join(root, "sequences") #root
+    self.root = root #os.path.join(root, "sequences") #root
     self.sequences = sequences
     self.labels = labels
     self.color_map = color_map
@@ -76,8 +77,9 @@ class SemanticKitti(Dataset):
     # make sure learning_map is a dict
     assert(isinstance(self.learning_map, dict))
 
-    # make sure sequences is a list
-    assert(isinstance(self.sequences, list))
+    if(self.nuscenes_dataset == False):
+        # make sure sequences is a list
+        assert(isinstance(self.sequences, list))
 
     # placeholder for filenames
     self.files = []
@@ -93,11 +95,11 @@ class SemanticKitti(Dataset):
           print("parsing seq {}".format(seq))
 
           # get paths for each
-          scan_path = os.path.join(self.root, seq, "velodyne")
-          label_path = os.path.join(self.root, seq, "labels")
+          # scan_path = os.path.join(self.root, seq, "velodyne")
+          # label_path = os.path.join(self.root, seq, "labels")
           
-          # scan_path = os.path.join(self.root, "volodyne_points", "data_odometry_velodyne", "dataset", "sequences", seq, "velodyne")
-          # label_path = os.path.join(self.root, "data_odometry_labels", "dataset", "sequences", seq, "labels")
+          scan_path = os.path.join(self.root, "volodyne_points", "data_odometry_velodyne", "dataset", "sequences", seq, "velodyne")
+          label_path = os.path.join(self.root, "data_odometry_labels", "dataset", "sequences", seq, "labels")
 
           # get files
           scan_files = [os.path.join(dp, f) for dp, dn, fn in os.walk(
@@ -118,6 +120,7 @@ class SemanticKitti(Dataset):
         label_files_accum.sort()
         
     else:
+        nusc = NuScenes(version='v1.0-trainval', dataroot=self.root, verbose=True)
         for idx in range(NUSCENES_TRAIN_SIZE):
             my_scene = nusc.scene[idx]
 
@@ -126,15 +129,15 @@ class SemanticKitti(Dataset):
             my_sample = nusc.get('sample', first_sample_token)
             
             while(my_sample['next'] != ''):
-                lidar_data = nusc.get('sample_data', my_sample['data'][sensor])
-                lidar_seg = nusc.get('lidarseg', my_sample['data'][sensor]) #returns data as # # print(nusc.lidarseg[index])
+                lidar_data = nusc.get('sample_data', my_sample['data']['LIDAR_TOP'])
+                lidar_seg = nusc.get('lidarseg', my_sample['data']['LIDAR_TOP']) #returns data as # # print(nusc.lidarseg[index])
                 
                 scan_files_accum.append(osp.join(self.root, lidar_data["filename"]))
                 label_files_accum.append(osp.join(self.root, lidar_seg["filename"]))
                 
                 my_sample = nusc.get('sample', my_sample['next'])
     
-    for i in range(len(self.scan_files)):
+    for i in range(len(scan_files_accum)):
         self.files.append({
             "scan": scan_files_accum[i],
             "label": label_files_accum[i]
@@ -260,7 +263,6 @@ class Parser():
   # standard conv, BN, relu
   def __init__(self,
                root,                            # directory for data
-               max_iters=None,                  # maximum number of training itirations
                train_sequences,                 # sequences to train
                valid_sequences,                 # sequences to validate.
                test_sequences,                  # sequences to test (if none, don't get)
@@ -272,6 +274,7 @@ class Parser():
                max_points,                      # max points in each scan in entire dataset
                batch_size,                      # batch size for train and val
                workers,                         # threads to load data
+               max_iters=None,                  # maximum number of training itirations
                gt=True,                         # get gt?
                shuffle_train=True,              # shuffle training set?
                nuscenes_dataset=False):         # nuscebes dataset?
@@ -301,13 +304,13 @@ class Parser():
 
     # Data loading code
     self.train_dataset = SemanticKitti(root=self.root,
-                                       max_iters=self.max_iters,
                                        sequences=self.train_sequences,
                                        labels=self.labels,
                                        color_map=self.color_map,
                                        learning_map=self.learning_map,
                                        learning_map_inv=self.learning_map_inv,
                                        sensor=self.sensor,
+                                       max_iters=self.max_iters,
                                        max_points=max_points,
                                        gt=self.gt,
                                        nuscenes_dataset=self.nuscenes_dataset)

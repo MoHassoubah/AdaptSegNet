@@ -73,7 +73,10 @@ class LaserScan:
 
     # if all goes well, open pointcloud
     scan = np.fromfile(filename, dtype=np.float32)
-    scan = scan.reshape((-1, 4))
+    if(self.nuscenes_dataset == False):
+        scan = scan.reshape((-1, 4))
+    else:
+        scan = scan.reshape((-1, 5))[:, :4]
 
     # put in attribute
     points = scan[:, 0:3]    # get xyz
@@ -94,7 +97,7 @@ class LaserScan:
     if remissions is not None and not isinstance(remissions, np.ndarray):
       raise TypeError("Remissions should be numpy array")
     
-    if(self.nuscenes_dataset == False)
+    if(self.nuscenes_dataset == False):
     # put in attribute
         self.points = points    # get xyz
     else:

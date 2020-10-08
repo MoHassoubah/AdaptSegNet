@@ -122,17 +122,19 @@ class ResNetMulti(nn.Module):
     def __init__(self, block, layers, num_classes):
         self.inplanes = 64
         super(ResNetMulti, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, #input kernel is 3 for RGB. We may keep the in/out ratio
+        #VIP  number of channels should be changed
+        self.conv1 = nn.Conv2d(5, 64, kernel_size=7, stride=2, padding=3, #Wout = (Win +1)/2 #input kernel is 3 for RGB. We may keep the in/out ratio
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64, affine=affine_par)
         for i in self.bn1.parameters():
             i.requires_grad = False
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, ceil_mode=True)  # change
-        self.layer1 = self._make_layer(block, 64, layers[0])
-        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=1, dilation=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=1, dilation=4)
+        #assume the output of the first conv layer define the output of the layer
+        self.layer1 = self._make_layer(block, 64, layers[0]) # out dim Win x Hin -> input to the next layer
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2) # out dim (Win+1)/2 x (Hin+1)/2  -> input to the next layer
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=1, dilation=2)# out dim Win x Hin  -> input to the next layer
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=1, dilation=4)# out dim Win x Hin  -> input to the next layer
         self.layer5 = self._make_pred_layer(Classifier_Module, 1024, [6, 12, 18, 24], [6, 12, 18, 24], num_classes)
         self.layer6 = self._make_pred_layer(Classifier_Module, 2048, [6, 12, 18, 24], [6, 12, 18, 24], num_classes)
 
@@ -153,11 +155,15 @@ class ResNetMulti(nn.Module):
                 nn.Conv2d(self.inplanes, planes * block.expansion,
                           kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion, affine=affine_par))
+                
         for i in downsample._modules['1'].parameters(): #ignore the BN parameters
             i.requires_grad = False
+            
         layers = []
-        layers.append(block(self.inplanes, planes, stride, dilation=dilation, downsample=downsample))
+        layers.append(block(self.inplanes, planes, stride, dilation=dilation, downsample=downsample)) # processing the input starts from this layer
+        
         self.inplanes = planes * block.expansion
+        
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes, dilation=dilation)) #ignoring the downsampling and the stride
 

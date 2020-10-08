@@ -30,13 +30,13 @@ MODEL = 'DeepLab'
 BATCH_SIZE = 1
 ITER_SIZE = 1
 NUM_WORKERS = 4
-DATA_DIRECTORY = './data/GTA5' #should be the path of the kitti LiDAR data
+DATA_DIRECTORY = 'C:\lidar_datasets\kitti_data'#'./data/GTA5' #should be the path of the kitti LiDAR data
 DATA_LIST_PATH = './dataset/gta5_list/train.txt'
-IGNORE_LABEL = 255
+IGNORE_LABEL = 0#255
 INPUT_SIZE = '2048,64'
-DATA_DIRECTORY_TARGET = './data/Cityscapes'
+DATA_DIRECTORY_TARGET = 'C:/lidar_datasets/nuscenes'#'./data/Cityscapes'
 DATA_LIST_PATH_TARGET = './dataset/cityscapes_list/train.txt'
-INPUT_SIZE_TARGET = '1024,512'
+INPUT_SIZE_TARGET = '2048,32'#'1024,512'
 LEARNING_RATE = 2.5e-4
 MOMENTUM = 0.9
 NUM_CLASSES = 20
@@ -141,10 +141,17 @@ def get_arguments():
     parser.add_argument("--gan", type=str, default=GAN,
                         help="choose the GAN objective.")
     parser.add_argument(
-      '--data_cfg', '-dc',
+      '--data_kitti_cfg', '-dck',
       type=str,
       required=False,
       default='dataset/lidar_dataset/config/labels/semantic-kitti.yaml',
+      help='Classification yaml cfg file. See /config/labels for sample. No default!',
+    )
+    parser.add_argument(
+      '--data_nuscenes_cfg', '-dcn',
+      type=str,
+      required=False,
+      default='dataset/lidar_dataset/config/labels/semantic-nuscenes.yaml',
       help='Classification yaml cfg file. See /config/labels for sample. No default!',
     )
     parser.add_argument(
@@ -194,28 +201,55 @@ def main():
 
     # open data config file
     try:
-      print("Opening data config file %s" % args.data_cfg)
-      DATA = yaml.safe_load(open(args.data_cfg, 'r'))
+      print("Opening data config file %s" % args.data_kitti_cfg)
+      DATA_kitti = yaml.safe_load(open(args.data_kitti_cfg, 'r'))
     except Exception as e:
       print(e)
       print("Error opening data yaml file.")
       quit()
     
     kitti_parser = Parser(root=args.data_dir,
-                          max_iters=args.num_steps * args.iter_size * args.batch_size,
-                          train_sequences=DATA["split"]["train"],
+                          train_sequences=DATA_kitti["split"]["train"],
                           valid_sequences=None,
                           test_sequences=None,
-                          labels=DATA["labels"],
-                          color_map=DATA["color_map"],
-                          learning_map=DATA["learning_map"],
-                          learning_map_inv=DATA["learning_map_inv"],
+                          labels=DATA_kitti["labels"],
+                          color_map=DATA_kitti["color_map"],
+                          learning_map=DATA_kitti["learning_map"],
+                          learning_map_inv=DATA_kitti["learning_map_inv"],
                           sensor=ARCH["dataset_kitti"]["sensor"],
                           max_points=ARCH["dataset_kitti"]["max_points"],
                           batch_size=ARCH["train"]["batch_size"],
                           workers=ARCH["train"]["workers"],
+                          max_iters=args.num_steps * args.iter_size * args.batch_size,
                           gt=True,
-                          shuffle_train=True)
+                          shuffle_train=True,
+                          nuscenes_dataset=False)
+                          
+    # open data config file
+    try:
+      print("Opening data config file %s" % args.data_nuscenes_cfg)
+      DATA_nuscenes = yaml.safe_load(open(args.data_nuscenes_cfg, 'r'))
+    except Exception as e:
+      print(e)
+      print("Error opening data yaml file.")
+      quit()
+    
+    nuscenes_parser = Parser(root=args.data_dir_target,
+                          train_sequences=None,
+                          valid_sequences=None,
+                          test_sequences=None,
+                          labels=DATA_nuscenes["labels"],
+                          color_map=DATA_nuscenes["color_map"],
+                          learning_map=DATA_nuscenes["learning_map"],
+                          learning_map_inv=DATA_nuscenes["learning_map_inv"],
+                          sensor=ARCH["dataset_nuscenes"]["sensor"],
+                          max_points=ARCH["dataset_nuscenes"]["max_points"],
+                          batch_size=ARCH["train"]["batch_size"],
+                          workers=ARCH["train"]["workers"],
+                          max_iters=args.num_steps * args.iter_size * args.batch_size,
+                          gt=False,
+                          shuffle_train=True,
+                          nuscenes_dataset=True)
 
     w, h = map(int, args.input_size.split(','))
     input_size = (w, h)
@@ -234,6 +268,7 @@ def main():
             saved_state_dict = torch.load(args.restore_from)
 
         new_params = model.state_dict().copy()
+        saved_state_dict = {k: v for k, v in saved_state_dict.items() if k in new_params}
         for i in saved_state_dict:
             # Scale.layer5.conv2d_list.3.weight
             i_parts = i.split('.')
@@ -241,6 +276,8 @@ def main():
             if not args.num_classes == 19 or not i_parts[1] == 'layer5':
                 new_params['.'.join(i_parts[1:])] = saved_state_dict[i]
                 # print i_parts
+                
+        # model_dict.update(w_dict) 
         model.load_state_dict(new_params)
 
     model.train()
@@ -269,16 +306,16 @@ def main():
 
     # trainloader_iter = enumerate(trainloader)#index and data pair
 
-    targetloader = data.DataLoader(cityscapesDataSet(args.data_dir_target, args.data_list_target,
-                                                     max_iters=args.num_steps * args.iter_size * args.batch_size,
-                                                     crop_size=input_size_target,
-                                                     scale=False, mirror=args.random_mirror, mean=IMG_MEAN,
-                                                     set=args.set),
-                                   batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
-                                   pin_memory=True)
+    # targetloader = data.DataLoader(cityscapesDataSet(args.data_dir_target, args.data_list_target,
+                                                     # max_iters=args.num_steps * args.iter_size * args.batch_size,
+                                                     # crop_size=input_size_target,
+                                                     # scale=False, mirror=args.random_mirror, mean=IMG_MEAN,
+                                                     # set=args.set),
+                                   # batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
+                                   # pin_memory=True)
 
 
-    targetloader_iter = enumerate(targetloader)
+    # targetloader_iter = enumerate(targetloader)
 
     # implement model.optim_parameters(args) to handle different models' lr setting
 
@@ -343,6 +380,12 @@ def main():
 
             # train with source
 
+            # _, batch = trainloader_iter.__next__()
+
+            # images, labels, _, _ = batch
+            # images = images.to(device)
+            # labels = labels.long().to(device)
+            
             batch = kitti_parser.get_train_batch()#trainloader_iter.__next__()
 
             in_vol, proj_mask, proj_labels, _, path_seq, path_name, _, _, _, _, _, _, _, _, _ = batch #images, labels, _, _ = batch
@@ -365,11 +408,15 @@ def main():
 
             # train with target
 
-            _, batch = targetloader_iter.__next__()
-            images, _, _ = batch
-            images = images.to(device)
+            # _, batch = targetloader_iter.__next__()
+            # images, _, _ = batch
+            # images = images.to(device)
+            batch = nuscenes_parser.get_train_batch()#trainloader_iter.__next__()
 
-            pred_target1, pred_target2 = model(images)
+            in_vol, proj_mask, _, _, path_seq, path_name, _, _, _, _, _, _, _, _, _ = batch #images, labels, _, _ = batch
+            in_vol = in_vol.to(device) #5channels input --#old RGB, 3xLxW
+
+            pred_target1, pred_target2 = model(in_vol)
             pred_target1 = interp_target(pred_target1)
             pred_target2 = interp_target(pred_target2)
 
