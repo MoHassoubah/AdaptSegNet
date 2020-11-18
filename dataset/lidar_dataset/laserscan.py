@@ -253,8 +253,12 @@ class SemLaserScan(LaserScan):
           raise RuntimeError("Filename extension is not valid label file.")
 
     # if all goes well, open label
-    label = np.fromfile(filename, dtype=np.int32)
-    label = label.reshape((-1))
+    # if(self.nuscenes_dataset == False):
+        label = np.fromfile(filename, dtype=np.int32)
+        label = label.reshape((-1))
+    else:
+        label = np.fromfile(filename, dtype=np.uint8) #resotring from the bin file with data type int32 instead of uint8 of course would decrease the number of points as here 4 points would be considered one point
+        
 
     # set it
     self.set_label(label)

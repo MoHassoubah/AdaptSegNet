@@ -112,7 +112,7 @@ learning_map:
   9 : 14    # "barrier" mapped to "fence" ---------------------mapped
   10: 0     # "debris" mapped to "unlabeled" ---------------------mapped
   11: 0     # "pushable_pullable" mapped to "unlabeled" ---------------------mapped
-  12: 19    # "trafficcone" mapped to "traffic-sign" ---------------------mapped
+  12: 0    # "trafficcone" mapped to "unlabeled" ---------------------mapped
   13: 0     # "bicycle_rack" mapped to "unlabeled" ---------------------mapped
   14: 2     # "bicycle" mapped to "bicycle" ---------------------mapped
   15: 5     # "bus-bendy" mapped to "other-vehicle" ---------------------mapped
@@ -122,7 +122,7 @@ learning_map:
   19: 5     # "vehicle-ambulance" to "other-vehicle" ---------------------------------mapped
   20: 1     # "vehicle-police" to "car" ---------------------------------mapped
   21: 3     # "motorcycle" to "motorcycle" ---------------------------------mapped
-  22: 16    # "trailer" to "trunk" ---------------------------------mapped
+  22: 0    # "trailer" to "unlabeled" ---------------------------------mapped
   23: 4     # "truck" to "truck" ---------------------------------mapped
   24: 9     # "flat-driveable_surface" to "road" ---------------------------------mapped
   25: 12    # "flat-other" to "other-ground" ----------------------------mapped
@@ -161,16 +161,16 @@ learning_ignore: # Ignore classes
   4: False     # "truck"
   5: False     # "other-vehicle"
   6: False     # "person"
-  7: False     # "bicyclist"
-  8: False     # "motorcyclist"
+  7: True     # "bicyclist"
+  8: True     # "motorcyclist"
   9: False     # "road"
-  10: False    # "parking"
+  10: True    # "parking"
   11: False    # "sidewalk"
   12: False    # "other-ground"
   13: False    # "building"
   14: False    # "fence"
   15: False    # "vegetation"
-  16: False    # "trunk"
+  16: True    # "trunk"
   17: False    # "terrain"
-  18: False    # "pole"
-  19: False    # "traffic-sign"
+  18: True    # "pole"
+  19: True    # "traffic-sign"

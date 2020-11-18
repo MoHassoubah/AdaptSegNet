@@ -106,7 +106,7 @@ class Classifier_Module(nn.Module):
         self.conv2d_list = nn.ModuleList()
         for dilation, padding in zip(dilation_series, padding_series):
             self.conv2d_list.append(
-                nn.Conv2d(inplanes, num_classes, kernel_size=3, stride=1, padding=padding, dilation=dilation, bias=True))#since k=3 and padding=dilation, in the equation of w-out there are 2 terms that cancel each other
+                nn.Conv2d(inplanes, num_classes, kernel_size=3, stride=1, padding=padding, dilation=dilation, bias=True))#wout = win #since k=3 and padding=dilation, in the equation of w-out there are 2 terms that cancel each other
 
         for m in self.conv2d_list:
             m.weight.data.normal_(0, 0.01)
@@ -129,14 +129,16 @@ class ResNetMulti(nn.Module):
         for i in self.bn1.parameters():
             i.requires_grad = False
         self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, ceil_mode=True)  # change
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, ceil_mode=True)  # change # wout = (win + 1) / 2 ->if win is even> wout = win/2 +1 else if win is odd> wout = win/2 + 0.5  
         #assume the output of the first conv layer define the output of the layer
         self.layer1 = self._make_layer(block, 64, layers[0]) # out dim Win x Hin -> input to the next layer
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2) # out dim (Win+1)/2 x (Hin+1)/2  -> input to the next layer
+        #what if we removed the dialation from the any of the next layers?????????????
         self.layer3 = self._make_layer(block, 256, layers[2], stride=1, dilation=2)# out dim Win x Hin  -> input to the next layer
         self.layer4 = self._make_layer(block, 512, layers[3], stride=1, dilation=4)# out dim Win x Hin  -> input to the next layer
         self.layer5 = self._make_pred_layer(Classifier_Module, 1024, [6, 12, 18, 24], [6, 12, 18, 24], num_classes)
         self.layer6 = self._make_pred_layer(Classifier_Module, 2048, [6, 12, 18, 24], [6, 12, 18, 24], num_classes)
+                                                                     #[6, 12, 18, 24] [6, 12, 18, 24]
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

@@ -1,19 +1,19 @@
-#points = 24257920.0
-max # points per scan = 34816
-means->depth, x, y,z, emission
-mean_depth= 9.341670038202986
-mean_x = -0.09609616730007664
-mean_y = -0.19046158346372352
-mean_z = -0.510940180583934
-mean_emmission = 17.72263941013904
 
+#points = 975500576.0
+max # points per scan = 34880
+means->depth, x, y,z, emission
+mean_depth= 9.3491331456874
+mean_x = -0.08765855820670747
+mean_y = -0.19636565646418108
+mean_z = -0.5109317943020222
+mean_emmission = 17.732149409822593
 
 /nStds->depth, x, y,z, emission
-std_depth = 12.41445884981729
-std_x = 10.158918571247124
-std_y = 11.608572868420767
-std_z = 1.765341235362552
-std_emission = 22.522761675929935
+std_depth = 12.374803659276289
+std_x = 10.171160265601255
+std_y = 11.561263922800938
+std_z = 1.7661922836642745
+std_emission = 22.50784445070556
 
 in the vehicle frame
 x-kitti = y-nuscenes

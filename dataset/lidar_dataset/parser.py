@@ -121,19 +121,22 @@ class SemanticKitti(Dataset):
         
     else:
         nusc = NuScenes(version='v1.0-trainval', dataroot=self.root, verbose=True)
-        for idx in range(NUSCENES_TRAIN_SIZE):
+        for idx in range(self.sequences[0],self.sequences[1]):
             my_scene = nusc.scene[idx]
 
             first_sample_token = my_scene['first_sample_token']
 
             my_sample = nusc.get('sample', first_sample_token)
             
-            while(my_sample['next'] != ''):
+            while(True):
                 lidar_data = nusc.get('sample_data', my_sample['data']['LIDAR_TOP'])
                 lidar_seg = nusc.get('lidarseg', my_sample['data']['LIDAR_TOP']) #returns data as # # print(nusc.lidarseg[index])
                 
                 scan_files_accum.append(osp.join(self.root, lidar_data["filename"]))
                 label_files_accum.append(osp.join(self.root, lidar_seg["filename"]))
+                
+                if(my_sample['next'] == ''):
+                    break
                 
                 my_sample = nusc.get('sample', my_sample['next'])
     
@@ -302,30 +305,32 @@ class Parser():
     # number of classes that matters is the one for xentropy
     self.nclasses = len(self.learning_map_inv)
 
-    # Data loading code
-    self.train_dataset = SemanticKitti(root=self.root,
-                                       sequences=self.train_sequences,
-                                       labels=self.labels,
-                                       color_map=self.color_map,
-                                       learning_map=self.learning_map,
-                                       learning_map_inv=self.learning_map_inv,
-                                       sensor=self.sensor,
-                                       max_iters=self.max_iters,
-                                       max_points=max_points,
-                                       gt=self.gt,
-                                       nuscenes_dataset=self.nuscenes_dataset)
+    if self.train_sequences:
+        # Data loading code
+        self.train_dataset = SemanticKitti(root=self.root,
+                                           sequences=self.train_sequences,
+                                           labels=self.labels,
+                                           color_map=self.color_map,
+                                           learning_map=self.learning_map,
+                                           learning_map_inv=self.learning_map_inv,
+                                           sensor=self.sensor,
+                                           max_iters=self.max_iters,
+                                           max_points=max_points,
+                                           gt=self.gt,
+                                           nuscenes_dataset=self.nuscenes_dataset)
 
-    self.trainloader = torch.utils.data.DataLoader(self.train_dataset,
-                                                   batch_size=self.batch_size,
-                                                   shuffle=self.shuffle_train,
-                                                   num_workers=self.workers,
-                                                   pin_memory=True,
-                                                   drop_last=True)
-    assert len(self.trainloader) > 0
-    self.trainiter = iter(self.trainloader)
+        self.trainloader = torch.utils.data.DataLoader(self.train_dataset,
+                                                       batch_size=self.batch_size,
+                                                       shuffle=self.shuffle_train,
+                                                       num_workers=self.workers,
+                                                       pin_memory=True,
+                                                       drop_last=True)
+        assert len(self.trainloader) > 0
+        self.trainiter = iter(self.trainloader)
 
+        
     if self.valid_sequences:
-      selfself.valid_dataset = SemanticKitti(root=self.root,
+      self.valid_dataset = SemanticKitti(root=self.root,
                                        sequences=self.valid_sequences,
                                        labels=self.labels,
                                        color_map=self.color_map,

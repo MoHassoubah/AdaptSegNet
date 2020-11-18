@@ -23,20 +23,24 @@ from dataset.cityscapes_dataset import cityscapesDataSet
 
 from dataset.lidar_dataset.parser import Parser
 import yaml
+import cv2
+from matplotlib import pyplot as plt
 
-IMG_MEAN = np.array((104.00698793, 116.66876762, 122.67891434), dtype=np.float32)
+# IMG_MEAN = np.array((104.00698793, 116.66876762, 122.67891434), dtype=np.float32)
 
 MODEL = 'DeepLab'
 BATCH_SIZE = 1
 ITER_SIZE = 1
 NUM_WORKERS = 4
-DATA_DIRECTORY = 'C:\lidar_datasets\kitti_data'#'./data/GTA5' #should be the path of the kitti LiDAR data
-DATA_LIST_PATH = './dataset/gta5_list/train.txt'
+SAVE_PATH_kitti = './result_train/kitti'
+SAVE_PATH_nuscenes = './result_train/nuscenes'
+DATA_DIRECTORY = 'C:\lidar_datasets\kitti_data'     #'./data/GTA5' #should be the path of the kitti LiDAR data
+# DATA_LIST_PATH = './dataset/gta5_list/train.txt'
 IGNORE_LABEL = 0#255
 INPUT_SIZE = '2048,64'
-DATA_DIRECTORY_TARGET = 'C:/lidar_datasets/nuscenes'#'./data/Cityscapes'
-DATA_LIST_PATH_TARGET = './dataset/cityscapes_list/train.txt'
-INPUT_SIZE_TARGET = '2048,32'#'1024,512'
+DATA_DIRECTORY_TARGET = 'C:/lidar_datasets/nuscenes'        #'./data/Cityscapes'
+# DATA_LIST_PATH_TARGET = './dataset/cityscapes_list/train.txt'
+INPUT_SIZE_TARGET = '1024,32'#'1024,512'
 LEARNING_RATE = 2.5e-4
 MOMENTUM = 0.9
 NUM_CLASSES = 20
@@ -80,16 +84,16 @@ def get_arguments():
                         help="number of workers for multithread dataloading.")
     parser.add_argument("--data-dir", type=str, default=DATA_DIRECTORY,
                         help="Path to the directory containing the source dataset.")
-    parser.add_argument("--data-list", type=str, default=DATA_LIST_PATH,
-                        help="Path to the file listing the images in the source dataset.")
+    # parser.add_argument("--data-list", type=str, default=DATA_LIST_PATH,
+                        # help="Path to the file listing the images in the source dataset.")
     parser.add_argument("--ignore-label", type=int, default=IGNORE_LABEL,
                         help="The index of the label to ignore during the training.")
     parser.add_argument("--input-size", type=str, default=INPUT_SIZE,
                         help="Comma-separated string with height and width of source images.")
     parser.add_argument("--data-dir-target", type=str, default=DATA_DIRECTORY_TARGET,
                         help="Path to the directory containing the target dataset.")
-    parser.add_argument("--data-list-target", type=str, default=DATA_LIST_PATH_TARGET,
-                        help="Path to the file listing the images in the target dataset.")
+    # parser.add_argument("--data-list-target", type=str, default=DATA_LIST_PATH_TARGET,
+                        # help="Path to the file listing the images in the target dataset.")
     parser.add_argument("--input-size-target", type=str, default=INPUT_SIZE_TARGET,
                         help="Comma-separated string with height and width of target images.")
     parser.add_argument("--is-training", action="store_true",
@@ -176,6 +180,14 @@ def adjust_learning_rate(optimizer, i_iter):
     optimizer.param_groups[0]['lr'] = lr
     if len(optimizer.param_groups) > 1:
         optimizer.param_groups[1]['lr'] = lr * 10
+    #example of parameter groups
+    # If you want different learning rates for different parameters, you can initialise the optimizer like this.
+
+    # optim.SGD([
+                    # {'params': model.base.parameters()},
+                    # {'params': model.classifier.parameters(), 'lr': 1e-3}
+                # ], lr=1e-2, momentum=0.9)
+    # This creates two parameter groups with different learning rates. That is the reason for having param_groups.
 
 
 def adjust_learning_rate_D(optimizer, i_iter):
@@ -183,6 +195,33 @@ def adjust_learning_rate_D(optimizer, i_iter):
     optimizer.param_groups[0]['lr'] = lr #param_groups may mean those of the conv and the others of the batch normalisation
     if len(optimizer.param_groups) > 1:
         optimizer.param_groups[1]['lr'] = lr * 10
+        
+def get_mpl_colormap(cmap_name):
+    cmap = plt.get_cmap(cmap_name)
+    # Initialize the matplotlib color map
+    sm = plt.cm.ScalarMappable(cmap=cmap)
+    # Obtain linear color range
+    color_range = sm.to_rgba(np.linspace(0, 1, 256), bytes=True)[:, 2::-1]
+    return color_range.reshape(256, 1, 3)
+
+def make_log_img(pred, color_fn, mask, gt, target=False):
+    # input should be [depth, pred, gt]
+    # make range image (normalized to 0,1 for saving)
+            
+            
+            
+    # make label prediction
+    # pred_color = color_fn((pred * mask).astype(np.int32))
+        
+    out_img = color_fn((pred * mask).astype(np.int32))#np.concatenate([out_img, pred_color], axis=0)
+    
+    if(target == False):
+        gt_color = color_fn(gt)
+        out_img = np.concatenate([out_img, gt_color], axis=0)
+        
+    return (out_img).astype(np.uint8)
+
+
 
 
 def main():
@@ -235,7 +274,7 @@ def main():
       quit()
     
     nuscenes_parser = Parser(root=args.data_dir_target,
-                          train_sequences=None,
+                          train_sequences=(0,700),
                           valid_sequences=None,
                           test_sequences=None,
                           labels=DATA_nuscenes["labels"],
@@ -247,7 +286,7 @@ def main():
                           batch_size=ARCH["train"]["batch_size"],
                           workers=ARCH["train"]["workers"],
                           max_iters=args.num_steps * args.iter_size * args.batch_size,
-                          gt=False,
+                          gt=True,
                           shuffle_train=True,
                           nuscenes_dataset=True)
 
@@ -259,25 +298,28 @@ def main():
 
     cudnn.enabled = True
 
+    
     # Create network
     if args.model == 'DeepLab':
         model = DeeplabMulti(num_classes=args.num_classes)
+        new_params = model.state_dict().copy()
         if args.restore_from[:4] == 'http' :
             saved_state_dict = model_zoo.load_url(args.restore_from)
-        else:
-            saved_state_dict = torch.load(args.restore_from)
-
-        new_params = model.state_dict().copy()
-        saved_state_dict = {k: v for k, v in saved_state_dict.items() if k in new_params}
-        for i in saved_state_dict:
-            # Scale.layer5.conv2d_list.3.weight
-            i_parts = i.split('.')
-            # print i_parts
-            if not args.num_classes == 19 or not i_parts[1] == 'layer5':
-                new_params['.'.join(i_parts[1:])] = saved_state_dict[i]
+            
+            saved_state_dict = {k: v for k, v in saved_state_dict.items() if k in new_params}
+            for i in saved_state_dict:
+                # Scale.layer5.conv2d_list.3.weight
+                i_parts = i.split('.')
                 # print i_parts
-                
-        # model_dict.update(w_dict) 
+                if not args.num_classes == 19 or not i_parts[1] == 'layer5':
+                    new_params['.'.join(i_parts[1:])] = saved_state_dict[i]
+                    # print i_parts
+        else:
+            saved_state_dict = torch.load(args.restore_from+'.pth')
+
+            saved_state_dict = {k: v for k, v in saved_state_dict.items() if k in new_params}
+            new_params.update(saved_state_dict) 
+        
         model.load_state_dict(new_params)
 
     model.train()
@@ -286,17 +328,37 @@ def main():
     cudnn.benchmark = True
 
     # init D
-    model_D1 = FCDiscriminator(num_classes=args.num_classes).to(device)
-    model_D2 = FCDiscriminator(num_classes=args.num_classes).to(device)
+    model_D1 = FCDiscriminator(num_classes=args.num_classes)#.to(device)
+    model_D2 = FCDiscriminator(num_classes=args.num_classes)#.to(device)
+    if args.restore_from[:4] != 'http' :
+        saved_state_dict_d1 = torch.load(args.restore_from+'_D1.pth')
+        new_params_d1 = model_D1.state_dict().copy()
+        new_params_d1.update(saved_state_dict_d1) 
+        model_D1.load_state_dict(new_params_d1)
+    
+        saved_state_dict_d2 = torch.load(args.restore_from+'_D2.pth')
+        new_params_d2 = model_D2.state_dict().copy()
+        new_params_d2.update(saved_state_dict_d2) 
+        model_D2.load_state_dict(new_params_d2)
+        
+    # model_D1.to(device)
+    # model_D2.to(device)
 
     model_D1.train()
     model_D1.to(device)
 
     model_D2.train()
     model_D2.to(device)
-
     if not os.path.exists(args.snapshot_dir):
         os.makedirs(args.snapshot_dir)
+        
+    
+    if not os.path.exists(SAVE_PATH_kitti):
+        os.makedirs(SAVE_PATH_kitti)
+        
+    
+    if not os.path.exists(SAVE_PATH_nuscenes):
+        os.makedirs(SAVE_PATH_nuscenes)
 
     # trainloader = data.DataLoader( #data.DataLoader retuns type torch
         # GTA5DataSet(args.data_dir, args.data_list, max_iters=args.num_steps * args.iter_size * args.batch_size,
@@ -337,8 +399,11 @@ def main():
 
     interp = nn.Upsample(size=(input_size[1], input_size[0]), mode='bilinear', align_corners=True)
     interp_target = nn.Upsample(size=(input_size_target[1], input_size_target[0]), mode='bilinear', align_corners=True)
+    
+    interp_target_rep_row = nn.Upsample(size=(input_size_target[1]*2, input_size_target[0]), mode='nearest')
 
     # labels for adversarial training
+    #what if we switched the labels?????????????
     source_label = 0
     target_label = 1
 
@@ -360,6 +425,7 @@ def main():
         loss_D_value2 = 0
 
         optimizer.zero_grad()
+        #what if we ignored the learning rate adujtment??????????
         adjust_learning_rate(optimizer, i_iter)
 
         optimizer_D1.zero_grad()
@@ -367,6 +433,7 @@ def main():
         adjust_learning_rate_D(optimizer_D1, i_iter)
         adjust_learning_rate_D(optimizer_D2, i_iter)
 
+        #what if we increased the batch size more than 1?????????????
         for sub_i in range(args.iter_size):
 
             # train G
@@ -395,6 +462,25 @@ def main():
             pred1, pred2 = model(in_vol)
             pred1 = interp(pred1)
             pred2 = interp(pred2)
+            
+            #############################
+            
+            with torch.no_grad():
+                if i_iter % 100 == 0 and i_iter != 0:
+                    output = pred2.squeeze(0).permute(1,2,0).cpu().numpy()
+                    output = np.asarray(np.argmax(output, axis=2), dtype=np.uint8)
+                    
+                    
+                    mask_np = proj_mask[0].cpu().numpy()
+                    gt_np = proj_labels[0].cpu().numpy()
+                    
+                
+                    
+                    out = make_log_img(output, kitti_parser.to_color, mask_np, gt_np)
+                    # print(name)
+                    name_2_save = os.path.join(SAVE_PATH_kitti, 'src_'+str(i_iter) + '.png')
+                    cv2.imwrite(name_2_save, out)
+            ##################################
 
             loss_seg1 = seg_loss(pred1, proj_labels)
             loss_seg2 = seg_loss(pred2, proj_labels)
@@ -413,15 +499,35 @@ def main():
             # images = images.to(device)
             batch = nuscenes_parser.get_train_batch()#trainloader_iter.__next__()
 
-            in_vol, proj_mask, _, _, path_seq, path_name, _, _, _, _, _, _, _, _, _ = batch #images, labels, _, _ = batch
+            in_vol, proj_mask, proj_labels, _, path_seq, path_name, _, _, _, _, _, _, _, _, _ = batch #images, labels, _, _ = batch
             in_vol = in_vol.to(device) #5channels input --#old RGB, 3xLxW
 
-            pred_target1, pred_target2 = model(in_vol)
+            pred_target1, pred_target2 = model(interp_target_rep_row(in_vol))
             pred_target1 = interp_target(pred_target1)
             pred_target2 = interp_target(pred_target2)
+            
+            
+            #############################
+            with torch.no_grad():
+                if i_iter % 100 == 0 and i_iter != 0:
+                    output = pred_target2.squeeze(0).permute(1,2,0).cpu().numpy()
+                    output = np.asarray(np.argmax(output, axis=2), dtype=np.uint8)
+                    
+                    
+                    mask_np = proj_mask[0].cpu().numpy()
+                    gt_np = proj_labels[0].cpu().numpy()
+                    
+                
+                    
+                    out = make_log_img(output, nuscenes_parser.to_color, mask_np, gt_np)
+                    # print(name)
+                    name_2_save = os.path.join(SAVE_PATH_nuscenes, 'trgt_'+str(i_iter) + '.png')
+                    cv2.imwrite(name_2_save, out)
+            ##################################
 
-            D_out1 = model_D1(F.softmax(pred_target1))
-            D_out2 = model_D2(F.softmax(pred_target2))
+            # print(pred_target1.shape)
+            D_out1 = model_D1(F.softmax(pred_target1, dim=1))
+            D_out2 = model_D2(F.softmax(pred_target2, dim=1))
 
             loss_adv_target1 = bce_loss(D_out1, torch.FloatTensor(D_out1.data.size()).fill_(source_label).to(device))
 
@@ -429,7 +535,8 @@ def main():
 
             loss = args.lambda_adv_target1 * loss_adv_target1 + args.lambda_adv_target2 * loss_adv_target2
             loss = loss / args.iter_size
-            loss.backward()
+            #only parameters of the segmentation model updated, dicriminator parameters fixed at this point
+            loss.backward() #propagates the loss derivatives in the segmentator
             loss_adv_target_value1 += loss_adv_target1.item() / args.iter_size
             loss_adv_target_value2 += loss_adv_target2.item() / args.iter_size
 
@@ -446,8 +553,9 @@ def main():
             pred1 = pred1.detach()
             pred2 = pred2.detach()
 
-            D_out1 = model_D1(F.softmax(pred1))
-            D_out2 = model_D2(F.softmax(pred2))
+            D_out1 = model_D1(F.softmax(pred1, dim=1))
+            # print(pred2.shape)
+            D_out2 = model_D2(F.softmax(pred2, dim=1))
 
             loss_D1 = bce_loss(D_out1, torch.FloatTensor(D_out1.data.size()).fill_(source_label).to(device))
 
@@ -466,14 +574,15 @@ def main():
             pred_target1 = pred_target1.detach()
             pred_target2 = pred_target2.detach()
 
-            D_out1 = model_D1(F.softmax(pred_target1))
-            D_out2 = model_D2(F.softmax(pred_target2))
+            D_out1 = model_D1(F.softmax(pred_target1, dim=1))
+            D_out2 = model_D2(F.softmax(pred_target2, dim=1))
 
             loss_D1 = bce_loss(D_out1, torch.FloatTensor(D_out1.data.size()).fill_(target_label).to(device))
 
             loss_D2 = bce_loss(D_out2, torch.FloatTensor(D_out2.data.size()).fill_(target_label).to(device))
 
-            loss_D1 = loss_D1 / args.iter_size / 2
+            #what if we removed the /2?????????????
+            loss_D1 = loss_D1 / args.iter_size / 2 # as if reducing the learning speed of the discriminator!
             loss_D2 = loss_D2 / args.iter_size / 2
 
             loss_D1.backward()
@@ -507,16 +616,16 @@ def main():
 
         if i_iter >= args.num_steps_stop - 1:
             print('save model ...')
-            torch.save(model.state_dict(), osp.join(args.snapshot_dir, 'GTA5_' + str(args.num_steps_stop) + '.pth'))
-            torch.save(model_D1.state_dict(), osp.join(args.snapshot_dir, 'GTA5_' + str(args.num_steps_stop) + '_D1.pth'))
-            torch.save(model_D2.state_dict(), osp.join(args.snapshot_dir, 'GTA5_' + str(args.num_steps_stop) + '_D2.pth'))
+            torch.save(model.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(args.num_steps_stop) + '.pth'))
+            torch.save(model_D1.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(args.num_steps_stop) + '_D1.pth'))
+            torch.save(model_D2.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(args.num_steps_stop) + '_D2.pth'))
             break
 
         if i_iter % args.save_pred_every == 0 and i_iter != 0:
             print('taking snapshot ...')
-            torch.save(model.state_dict(), osp.join(args.snapshot_dir, 'GTA5_' + str(i_iter) + '.pth'))
-            torch.save(model_D1.state_dict(), osp.join(args.snapshot_dir, 'GTA5_' + str(i_iter) + '_D1.pth'))
-            torch.save(model_D2.state_dict(), osp.join(args.snapshot_dir, 'GTA5_' + str(i_iter) + '_D2.pth'))
+            torch.save(model.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(i_iter) + '.pth'))
+            torch.save(model_D1.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(i_iter) + '_D1.pth'))
+            torch.save(model_D2.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(i_iter) + '_D2.pth'))
 
     if args.tensorboard:
         writer.close()
