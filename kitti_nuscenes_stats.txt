@@ -1,4 +1,21 @@
+######################kitti###########################
+#points = 2848639094.0
+means->depth, x, y,z, emission
+mean_depth= 11.61845631266461
+mean_x = -0.11461075220722967
+mean_y = 0.4501248190924196
+mean_z = -1.0541846382360425
+mean_emmission = 0.28743615448305476
 
+/nStds->depth, x, y,z, emission
+std_depth = 10.114014563568704
+std_x = 12.229373415853567
+std_y = 9.254587278222884
+std_z = 0.8659115872262463
+std_emission = 0.14407062272691376
+
+
+#####################nuscenes########################
 #points = 975500576.0
 max # points per scan = 34880
 means->depth, x, y,z, emission
