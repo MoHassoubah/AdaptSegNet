@@ -39,17 +39,17 @@ dataset_kitti:
       width: 2048
       height: 64
     img_means: #range,x,y,z,signal
-      - 12.12
-      - 10.88
-      - 0.23
-      - -1.04
-      - 0.21
+      - 11.62 #12.12
+      - -0.11 #10.88
+      - 0.45 #0.23
+      - -1.05 #-1.04
+      - 0.28
     img_stds: #range,x,y,z,signal
-      - 12.32
-      - 11.47
-      - 6.91
+      - 10.11 #12.32
+      - 12.22 #11.47
+      - 9.25  #6.91
       - 0.86
-      - 0.16
+      - 0.14 #0.16
 
 
 
@@ -67,14 +67,14 @@ dataset_nuscenes:
       height: 32
     img_means: #range,x,y,z,signal
       - 9.35
-      - -0.0876
-      - -0.196
+      - -0.196 #x and y interchanged places
+      - 0.0876 #was = -0.0876 then multiplied by -1 #x and y interchanged places
       - -0.51
       - 17.73
     img_stds: #range,x,y,z,signal
       - 12.37
-      - 10.17
-      - 11.56
+      - 11.56 #x and y interchanged places
+      - 10.17 #x and y interchanged places
       - 1.766
       - 22.52
     rot_ang_deg: 90

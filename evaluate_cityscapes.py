@@ -279,7 +279,7 @@ def main(restore_frm=None,outer_parser=None):
     
     interp = nn.Upsample(size=(height, wedith), mode='bilinear', align_corners=True)
     
-    interp_target_rep_row = nn.Upsample(size=(height*2, wedith), mode='nearest')
+    # interp_target_rep_row = nn.Upsample(size=(height*2, wedith), mode='nearest')
 
     ignore_classes = [0,7,8,10,16,18,19]
     evaluator = iouEval(nuscenes_parser.get_n_classes(),device, ignore_classes)
@@ -296,11 +296,11 @@ def main(restore_frm=None,outer_parser=None):
             in_vol = in_vol.to(device)
 
             if args.model == 'DeeplabMulti':
-                output1, output2 = model(interp_target_rep_row(in_vol))
+                output1, output2 = model((in_vol))
                                                 #.data[0]
                 output = (interp(output2))#.cpu().numpy()
             elif args.model == 'DeeplabVGG' or args.model == 'Oracle':
-                output = model(interp_target_rep_row(in_vol))
+                output = model((in_vol))
                                                #.data[0]
                 output = (interp(output))#.cpu().numpy()
 

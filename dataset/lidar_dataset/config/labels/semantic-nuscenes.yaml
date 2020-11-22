@@ -122,7 +122,7 @@ learning_map:
   19: 5     # "vehicle-ambulance" to "other-vehicle" ---------------------------------mapped
   20: 1     # "vehicle-police" to "car" ---------------------------------mapped
   21: 3     # "motorcycle" to "motorcycle" ---------------------------------mapped
-  22: 0    # "trailer" to "unlabeled" ---------------------------------mapped
+  22: 5    # "trailer" to "other-vehicle" ---------------------------------mapped
   23: 4     # "truck" to "truck" ---------------------------------mapped
   24: 9     # "flat-driveable_surface" to "road" ---------------------------------mapped
   25: 12    # "flat-other" to "other-ground" ----------------------------mapped
@@ -149,7 +149,7 @@ learning_map_inv: # inverse of previous map
   13: 28    # "building"
   14: 9     # "fence"
   15: 30    # "vegetation"
-  16: 22    # "trunk"
+  16: 30    # "trunk"
   17: 27    # "terrain"
   18: 28    # "pole"
   19: 12    # "traffic-sign"

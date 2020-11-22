@@ -482,8 +482,8 @@ def main():
                     cv2.imwrite(name_2_save, out)
             ##################################
 
-            loss_seg1 = seg_loss(pred1, proj_labels)
-            loss_seg2 = seg_loss(pred2, proj_labels)
+            loss_seg1 = seg_loss(pred1, proj_labels)#criterion(torch.log(F.softmax(pred1, dim=1).clamp(min=1e-8)), proj_labels)#
+            loss_seg2 = seg_loss(pred2, proj_labels)#criterion(torch.log(F.softmax(pred2, dim=1).clamp(min=1e-8)), proj_labels)#
             loss = loss_seg2 + args.lambda_seg * loss_seg1
 
             # proper normalization
