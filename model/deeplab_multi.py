@@ -139,6 +139,7 @@ class ResNetMulti(nn.Module):
         self.layer5 = self._make_pred_layer(Classifier_Module, 1024, [6, 12, 18, 24], [6, 12, 18, 24], num_classes)
         self.layer6 = self._make_pred_layer(Classifier_Module, 2048, [6, 12, 18, 24], [6, 12, 18, 24], num_classes)
                                                                      #[6, 12, 18, 24] [6, 12, 18, 24]
+        self.layer4_dash = self._make_pred_layer(Classifier_Module, 512, [6, 12, 18, 24], [6, 12, 18, 24], num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -180,7 +181,9 @@ class ResNetMulti(nn.Module):
         x = self.relu(x)
         x = self.maxpool(x)
         x = self.layer1(x)
+        
         x = self.layer2(x)
+        x0 = self.layer4_dash(x)
 
         x = self.layer3(x)
         x1 = self.layer5(x)
@@ -188,7 +191,7 @@ class ResNetMulti(nn.Module):
         x2 = self.layer4(x)
         x2 = self.layer6(x2)
 
-        return x1, x2
+        return x1, x2,x0
 
     def get_1x_lr_params_NOscale(self):
         """

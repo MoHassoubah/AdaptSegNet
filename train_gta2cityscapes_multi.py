@@ -57,6 +57,9 @@ LOG_DIR = './log'
 
 LEARNING_RATE_D = 1e-4
 LAMBDA_SEG = 0.1
+
+LAMBDA_ADV_TARGET0 = 0.0002
+
 LAMBDA_ADV_TARGET1 = 0.0002
 LAMBDA_ADV_TARGET2 = 0.001
 GAN = 'Vanilla'
@@ -107,6 +110,8 @@ def get_arguments():
     parser.add_argument("--lambda-adv-target1", type=float, default=LAMBDA_ADV_TARGET1,
                         help="lambda_adv for adversarial training.")
     parser.add_argument("--lambda-adv-target2", type=float, default=LAMBDA_ADV_TARGET2,
+                        help="lambda_adv for adversarial training.")
+    parser.add_argument("--lambda-adv-target0", type=float, default=LAMBDA_ADV_TARGET0,
                         help="lambda_adv for adversarial training.")
     parser.add_argument("--momentum", type=float, default=MOMENTUM,
                         help="Momentum component of the optimiser.")
@@ -328,6 +333,8 @@ def main():
     cudnn.benchmark = True
 
     # init D
+    model_D0 = FCDiscriminator(num_classes=args.num_classes)#.to(device)
+    
     model_D1 = FCDiscriminator(num_classes=args.num_classes)#.to(device)
     model_D2 = FCDiscriminator(num_classes=args.num_classes)#.to(device)
     if args.restore_from[:4] != 'http' :
@@ -341,6 +348,11 @@ def main():
         new_params_d2.update(saved_state_dict_d2) 
         model_D2.load_state_dict(new_params_d2)
         
+        saved_state_dict_d0 = torch.load(args.restore_from+'_D0.pth')
+        new_params_d0 = model_D0.state_dict().copy()
+        new_params_d0.update(saved_state_dict_d0) 
+        model_D0.load_state_dict(new_params_d0)
+        
     # model_D1.to(device)
     # model_D2.to(device)
 
@@ -349,6 +361,9 @@ def main():
 
     model_D2.train()
     model_D2.to(device)
+    
+    model_D0.train()
+    model_D0.to(device)
     if not os.path.exists(args.snapshot_dir):
         os.makedirs(args.snapshot_dir)
         
@@ -391,16 +406,34 @@ def main():
     optimizer_D2 = optim.Adam(model_D2.parameters(), lr=args.learning_rate_D, betas=(0.9, 0.99))
     optimizer_D2.zero_grad()
 
+    optimizer_D0 = optim.Adam(model_D0.parameters(), lr=args.learning_rate_D, betas=(0.9, 0.99))
+    optimizer_D0.zero_grad()
+
     if args.gan == 'Vanilla':
         bce_loss = torch.nn.BCEWithLogitsLoss()
     elif args.gan == 'LS':
         bce_loss = torch.nn.MSELoss()
     seg_loss = torch.nn.CrossEntropyLoss(ignore_index=255)
+    
+    ##############################################################
+    # # weights for loss (and bias)
+    # epsilon_w = 0.001
+    # content = torch.zeros(kitti_parser.get_n_classes(), dtype=torch.float)
+    # for cl, freq in DATA_kitti["content"].items():
+        # x_cl = kitti_parser.to_xentropy(cl)  # map actual class to xentropy class
+        # content[x_cl] += freq
+    # loss_w = 1 / (content + epsilon_w)   # get weights
+    # for x_cl, w in enumerate(loss_w):  # ignore the ones necessary to ignore
+        # if DATA_kitti["learning_ignore"][x_cl]:
+            # # don't weigh
+            # loss_w[x_cl] = 0
+    # criterion = torch.nn.NLLLoss(weight=loss_w).to(device)
+    #############################################################
 
     interp = nn.Upsample(size=(input_size[1], input_size[0]), mode='bilinear', align_corners=True)
     interp_target = nn.Upsample(size=(input_size_target[1], input_size_target[0]), mode='bilinear', align_corners=True)
     
-    interp_target_rep_row = nn.Upsample(size=(input_size_target[1]*2, input_size_target[0]), mode='nearest')
+    # interp_target_rep_row = nn.Upsample(size=(input_size_target[1]*2, input_size_target[0]), mode='nearest')
 
     # labels for adversarial training
     #what if we switched the labels?????????????
@@ -423,6 +456,10 @@ def main():
         loss_seg_value2 = 0
         loss_adv_target_value2 = 0
         loss_D_value2 = 0
+        
+        
+        loss_adv_target_value0 = 0
+        loss_D_value0 = 0
 
         optimizer.zero_grad()
         #what if we ignored the learning rate adujtment??????????
@@ -430,8 +467,14 @@ def main():
 
         optimizer_D1.zero_grad()
         optimizer_D2.zero_grad()
+        
+        optimizer_D0.zero_grad()
+        
+        
         adjust_learning_rate_D(optimizer_D1, i_iter)
         adjust_learning_rate_D(optimizer_D2, i_iter)
+        
+        adjust_learning_rate_D(optimizer_D0, i_iter)
 
         #what if we increased the batch size more than 1?????????????
         for sub_i in range(args.iter_size):
@@ -443,6 +486,9 @@ def main():
                 param.requires_grad = False
 
             for param in model_D2.parameters():
+                param.requires_grad = False
+            
+            for param in model_D0.parameters():
                 param.requires_grad = False
 
             # train with source
@@ -459,9 +505,11 @@ def main():
             in_vol = in_vol.to(device) #5channels input --#old RGB, 3xLxW
             proj_labels = proj_labels.long().to(device)#value from 0-255
 
-            pred1, pred2 = model(in_vol)
+            pred1, pred2,pred0 = model(in_vol)
             pred1 = interp(pred1)
             pred2 = interp(pred2)
+            
+            pred0 = interp(pred0)
             
             #############################
             
@@ -502,9 +550,11 @@ def main():
             in_vol, proj_mask, proj_labels, _, path_seq, path_name, _, _, _, _, _, _, _, _, _ = batch #images, labels, _, _ = batch
             in_vol = in_vol.to(device) #5channels input --#old RGB, 3xLxW
 
-            pred_target1, pred_target2 = model(interp_target_rep_row(in_vol))
+            pred_target1, pred_target2,pred_target0 = model((in_vol))
             pred_target1 = interp_target(pred_target1)
             pred_target2 = interp_target(pred_target2)
+            
+            pred_target0 = interp_target(pred_target0)
             
             
             #############################
@@ -524,6 +574,21 @@ def main():
                     name_2_save = os.path.join(SAVE_PATH_nuscenes, 'trgt_'+str(i_iter) + '.png')
                     cv2.imwrite(name_2_save, out)
             ##################################
+            
+            
+            
+            ################################################################
+            ##################
+            # print(pred_target1.shape)
+            D_out0 = model_D0(F.softmax(pred_target0, dim=1))
+
+            loss_adv_target0 = bce_loss(D_out0, torch.FloatTensor(D_out0.data.size()).fill_(source_label).to(device))
+
+
+            loss_adv_target_value0 += loss_adv_target0.item() / args.iter_size
+            
+            ##################
+            ################################################################
 
             # print(pred_target1.shape)
             D_out1 = model_D1(F.softmax(pred_target1, dim=1))
@@ -533,7 +598,7 @@ def main():
 
             loss_adv_target2 = bce_loss(D_out2, torch.FloatTensor(D_out2.data.size()).fill_(source_label).to(device))
 
-            loss = args.lambda_adv_target1 * loss_adv_target1 + args.lambda_adv_target2 * loss_adv_target2
+            loss = args.lambda_adv_target1 * loss_adv_target1 + args.lambda_adv_target2 * loss_adv_target2   + args.lambda_adv_target0 * loss_adv_target0
             loss = loss / args.iter_size
             #only parameters of the segmentation model updated, dicriminator parameters fixed at this point
             loss.backward() #propagates the loss derivatives in the segmentator
@@ -549,51 +614,85 @@ def main():
             for param in model_D2.parameters():
                 param.requires_grad = True
 
+            for param in model_D0.parameters():
+                param.requires_grad = True
+
             # train with source
             pred1 = pred1.detach()
             pred2 = pred2.detach()
+            
+            pred0 = pred0.detach()
 
-            D_out1 = model_D1(F.softmax(pred1, dim=1))
+            D_out1 = model_D1(F.softmax(pred1, dim=1))#I believe D_out is calculated again as the it relations to the model parameter wasn't saved the first time to be used in the backward propagation
             # print(pred2.shape)
             D_out2 = model_D2(F.softmax(pred2, dim=1))
+            
+            
+            D_out0 = model_D0(F.softmax(pred0, dim=1))
 
+            
             loss_D1 = bce_loss(D_out1, torch.FloatTensor(D_out1.data.size()).fill_(source_label).to(device))
 
             loss_D2 = bce_loss(D_out2, torch.FloatTensor(D_out2.data.size()).fill_(source_label).to(device))
 
+            
+            loss_D0 = bce_loss(D_out0, torch.FloatTensor(D_out0.data.size()).fill_(source_label).to(device))
+
             loss_D1 = loss_D1 / args.iter_size / 2
             loss_D2 = loss_D2 / args.iter_size / 2
+            
+            loss_D0 = loss_D0 / args.iter_size / 2
 
             loss_D1.backward()
             loss_D2.backward()
+            
+            loss_D0.backward()
 
             loss_D_value1 += loss_D1.item()
             loss_D_value2 += loss_D2.item()
+            
+            loss_D_value0 += loss_D0.item()
 
             # train with target
             pred_target1 = pred_target1.detach()
             pred_target2 = pred_target2.detach()
+            
+            pred_target0 = pred_target0.detach()
 
             D_out1 = model_D1(F.softmax(pred_target1, dim=1))
             D_out2 = model_D2(F.softmax(pred_target2, dim=1))
+            
+            D_out0 = model_D0(F.softmax(pred_target0, dim=1))
+            
 
             loss_D1 = bce_loss(D_out1, torch.FloatTensor(D_out1.data.size()).fill_(target_label).to(device))
 
             loss_D2 = bce_loss(D_out2, torch.FloatTensor(D_out2.data.size()).fill_(target_label).to(device))
+            
+            
+            loss_D0 = bce_loss(D_out0, torch.FloatTensor(D_out0.data.size()).fill_(target_label).to(device))
 
             #what if we removed the /2?????????????
             loss_D1 = loss_D1 / args.iter_size / 2 # as if reducing the learning speed of the discriminator!
             loss_D2 = loss_D2 / args.iter_size / 2
+            
+            loss_D0 = loss_D0 / args.iter_size / 2
 
             loss_D1.backward()
             loss_D2.backward()
+            
+            loss_D0.backward()
 
             loss_D_value1 += loss_D1.item()
             loss_D_value2 += loss_D2.item()
+            
+            loss_D_value0 += loss_D0.item()
 
         optimizer.step()
         optimizer_D1.step()
         optimizer_D2.step()
+        
+        optimizer_D0.step()
 
         if args.tensorboard:
             scalar_info = {
@@ -601,8 +700,10 @@ def main():
                 'loss_seg2': loss_seg_value2,
                 'loss_adv_target1': loss_adv_target_value1,
                 'loss_adv_target2': loss_adv_target_value2,
+                'loss_adv_target0': loss_adv_target_value0,
                 'loss_D1': loss_D_value1,
                 'loss_D2': loss_D_value2,
+                'loss_D0': loss_D_value0,
             }
 
             if i_iter % 10 == 0:
@@ -611,14 +712,16 @@ def main():
 
         print('exp = {}'.format(args.snapshot_dir))
         print(
-        'iter = {0:8d}/{1:8d}, loss_seg1 = {2:.3f} loss_seg2 = {3:.3f} loss_adv1 = {4:.3f}, loss_adv2 = {5:.3f} loss_D1 = {6:.3f} loss_D2 = {7:.3f}'.format(
-            i_iter, args.num_steps, loss_seg_value1, loss_seg_value2, loss_adv_target_value1, loss_adv_target_value2, loss_D_value1, loss_D_value2))
+        'iter = {0:8d}/{1:8d}, loss_seg1 = {2:.3f} loss_seg2 = {3:.3f} loss_adv1 = {4:.3f}, loss_adv2 = {5:.3f}, loss_adv0 = {8:.3f} loss_D1 = {6:.3f} loss_D2 = {7:.3f} loss_D0 = {9:.3f}'.format(
+            i_iter, args.num_steps, loss_seg_value1, loss_seg_value2, loss_adv_target_value1, loss_adv_target_value2, loss_D_value1, loss_D_value2,  loss_adv_target_value0, loss_D_value0))
 
         if i_iter >= args.num_steps_stop - 1:
             print('save model ...')
             torch.save(model.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(args.num_steps_stop) + '.pth'))
             torch.save(model_D1.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(args.num_steps_stop) + '_D1.pth'))
             torch.save(model_D2.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(args.num_steps_stop) + '_D2.pth'))
+            
+            torch.save(model_D0.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(args.num_steps_stop) + '_D0.pth'))
             break
 
         if i_iter % args.save_pred_every == 0 and i_iter != 0:
@@ -626,6 +729,8 @@ def main():
             torch.save(model.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(i_iter) + '.pth'))
             torch.save(model_D1.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(i_iter) + '_D1.pth'))
             torch.save(model_D2.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(i_iter) + '_D2.pth'))
+            
+            torch.save(model_D0.state_dict(), osp.join(args.snapshot_dir, 'kitti_' + str(i_iter) + '_D0.pth'))
 
     if args.tensorboard:
         writer.close()

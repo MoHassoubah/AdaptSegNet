@@ -296,7 +296,7 @@ def main(restore_frm=None,outer_parser=None):
             in_vol = in_vol.to(device)
 
             if args.model == 'DeeplabMulti':
-                output1, output2 = model((in_vol))
+                output1, output2, _ = model((in_vol))
                                                 #.data[0]
                 output = (interp(output2))#.cpu().numpy()
             elif args.model == 'DeeplabVGG' or args.model == 'Oracle':
