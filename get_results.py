@@ -5,7 +5,7 @@ import numpy as np
 
 if __name__ == '__main__':#was added to overcome the thread issue
     mious = []
-    x = list(range(5000,95000,5000))
+    x = list(range(5000,155000,5000))
     
     parser = evaluate_cityscapes.getValidData()
     for i in x:

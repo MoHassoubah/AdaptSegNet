@@ -532,7 +532,8 @@ def main():
 
             loss_seg1 = seg_loss(pred1, proj_labels)#criterion(torch.log(F.softmax(pred1, dim=1).clamp(min=1e-8)), proj_labels)#
             loss_seg2 = seg_loss(pred2, proj_labels)#criterion(torch.log(F.softmax(pred2, dim=1).clamp(min=1e-8)), proj_labels)#
-            loss = loss_seg2 + args.lambda_seg * loss_seg1
+            loss_seg0 = seg_loss(pred0, proj_labels)#criterion(torch.log(F.softmax(pred2, dim=1).clamp(min=1e-8)), proj_labels)#
+            loss = loss_seg2 + args.lambda_seg * loss_seg1 + (args.lambda_seg/10.0 * loss_seg0)
 
             # proper normalization
             loss = loss / args.iter_size
