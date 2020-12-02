@@ -36,7 +36,7 @@ SAVE_PATH = './result/nuscenes'
 IGNORE_LABEL = 255
 NUM_CLASSES = 20
 NUM_STEPS = 500 # Number of images in the validation set.
-RESTORE_FROM = './snapshots/Kitti2Nuscenes_multi/kitti_35000.pth'    #'http://vllab.ucmerced.edu/ytsai/CVPR18/GTA2Cityscapes_multi-ed35151c.pth'
+RESTORE_FROM = './snapshots/Kitti2Nuscenes_multi/kitti_90000.pth'    #'http://vllab.ucmerced.edu/ytsai/CVPR18/GTA2Cityscapes_multi-ed35151c.pth'
 RESTORE_FROM_VGG = 'http://vllab.ucmerced.edu/ytsai/CVPR18/GTA2Cityscapes_vgg-ac4ac9f6.pth'
 RESTORE_FROM_ORC = 'http://vllab1.ucmerced.edu/~whung/adaptSeg/cityscapes_oracle-b7b9934.pth'
 SET = 'val'
@@ -84,6 +84,15 @@ def get_arguments():
     parser.add_argument("--save", type=str, default=SAVE_PATH,
                         help="Path to save result.")
     parser.add_argument("--cpu", action='store_true', help="choose to use cpu device.")
+    parser.add_argument("--kitti", type=bool, default=False,
+                        help="Validate for kitti or nuscenes dataset.")
+    parser.add_argument(
+      '--data_kitti_cfg', '-dck',
+      type=str,
+      required=False,
+      default='dataset/lidar_dataset/config/labels/semantic-kitti.yaml',
+      help='Classification yaml cfg file. See /config/labels for sample. No default!',
+    )
     parser.add_argument(
       '--data_nuscenes_cfg', '-dcn',
       type=str,
@@ -151,6 +160,7 @@ def getValidData():
       print(e)
       print("Error opening arch yaml file.")
       quit()
+
       
     # open data config file
     try:
@@ -231,58 +241,114 @@ def main(restore_frm=None,outer_parser=None):
       print(e)
       print("Error opening arch yaml file.")
       quit()
+    
+    
       
-    # open data config file
-    try:
-      print("Opening data config file %s" % args.data_nuscenes_cfg)
-      DATA_nuscenes = yaml.safe_load(open(args.data_nuscenes_cfg, 'r'))
-    except Exception as e:
-      print(e)
-      print("Error opening data yaml file.")
-      quit()
     
     if(restore_frm == None):
-        nuscenes_parser = Parser(root=args.data_dir,
-                              train_sequences=None,
-                              valid_sequences=(700,850),
-                              test_sequences=None,
-                              labels=DATA_nuscenes["labels"],
-                              color_map=DATA_nuscenes["color_map"],
-                              learning_map=DATA_nuscenes["learning_map"],
-                              learning_map_inv=DATA_nuscenes["learning_map_inv"],
-                              sensor=ARCH["dataset_nuscenes"]["sensor"],
-                              max_points=ARCH["dataset_nuscenes"]["max_points"],
-                              batch_size=ARCH["train"]["batch_size"],
-                              workers=ARCH["train"]["workers"],
-                              max_iters=None,
-                              gt=True,
-                              shuffle_train=True,
-                              nuscenes_dataset=True)
+        if(args.kitti == False):
+            # open data config file
+            try:
+              print("Opening data config file %s" % args.data_nuscenes_cfg)
+              DATA_nuscenes = yaml.safe_load(open(args.data_nuscenes_cfg, 'r'))
+            except Exception as e:
+              print(e)
+              print("Error opening data yaml file.")
+              quit()
+              
+            nuscenes_parser = Parser(root=args.data_dir,
+                                  train_sequences=None,
+                                  valid_sequences=(700,850),
+                                  test_sequences=None,
+                                  labels=DATA_nuscenes["labels"],
+                                  color_map=DATA_nuscenes["color_map"],
+                                  learning_map=DATA_nuscenes["learning_map"],
+                                  learning_map_inv=DATA_nuscenes["learning_map_inv"],
+                                  sensor=ARCH["dataset_nuscenes"]["sensor"],
+                                  max_points=ARCH["dataset_nuscenes"]["max_points"],
+                                  batch_size=ARCH["train"]["batch_size"],
+                                  workers=ARCH["train"]["workers"],
+                                  max_iters=None,
+                                  gt=True,
+                                  shuffle_train=True,
+                                  nuscenes_dataset=True)
+                                  
+            valid_loader  = nuscenes_parser.get_valid_set()
+            ignore_classes = [0,7,8,10,16,18,19]
+            
+            
+            img_means = ARCH["dataset_nuscenes"]["sensor"]["img_means"]
+            img_stds = ARCH["dataset_nuscenes"]["sensor"]["img_stds"]
+            wedith = ARCH["dataset_nuscenes"]["sensor"]["img_prop"]["width"]
+            height =ARCH["dataset_nuscenes"]["sensor"]["img_prop"]["height"]
+    
+            interp_target_rep_row = nn.Upsample(size=(height*2, wedith), mode='nearest')
+            
+            the_parser = nuscenes_parser
+                              
+        else:
+            # open data config file
+            try:
+              print("Opening data config file %s" % args.data_kitti_cfg)
+              DATA_kitti = yaml.safe_load(open(args.data_kitti_cfg, 'r'))
+            except Exception as e:
+              print(e)
+              print("Error opening data yaml file.")
+              quit()
+              
+            kitti_parser = Parser(root=args.data_dir,
+                                  train_sequences=None,
+                                  valid_sequences=DATA_kitti["split"]["valid"],
+                                  test_sequences=None,
+                                  labels=DATA_kitti["labels"],
+                                  color_map=DATA_kitti["color_map"],
+                                  learning_map=DATA_kitti["learning_map"],
+                                  learning_map_inv=DATA_kitti["learning_map_inv"],
+                                  sensor=ARCH["dataset_kitti"]["sensor"],
+                                  max_points=ARCH["dataset_kitti"]["max_points"],
+                                  batch_size=ARCH["train"]["batch_size"],
+                                  workers=ARCH["train"]["workers"],
+                                  max_iters=None,
+                                  gt=True,
+                                  shuffle_train=True,
+                                  nuscenes_dataset=False)
+                                  
+            valid_loader  = kitti_parser.get_valid_set()
+            ignore_classes = [0]
+            
+            img_means = ARCH["dataset_kitti"]["sensor"]["img_means"]
+            img_stds = ARCH["dataset_kitti"]["sensor"]["img_stds"]
+            wedith = ARCH["dataset_kitti"]["sensor"]["img_prop"]["width"]
+            height =ARCH["dataset_kitti"]["sensor"]["img_prop"]["height"]
+            
+            interp_target_rep_row = lambda a : a
+            
+            the_parser = kitti_parser
 
     else:
-        nuscenes_parser = outer_parser
+        the_parser = outer_parser
         
     
-    valid_loader  = nuscenes_parser.get_valid_set()
+        valid_loader  = the_parser.get_valid_set()
+        ignore_classes = [0,7,8,10,16,18,19]
+        
+        img_means = ARCH["dataset_nuscenes"]["sensor"]["img_means"]
+        img_stds = ARCH["dataset_nuscenes"]["sensor"]["img_stds"]
+        wedith = ARCH["dataset_nuscenes"]["sensor"]["img_prop"]["width"]
+        height =ARCH["dataset_nuscenes"]["sensor"]["img_prop"]["height"]
     
-    img_means = ARCH["dataset_nuscenes"]["sensor"]["img_means"]
-    img_stds = ARCH["dataset_nuscenes"]["sensor"]["img_stds"]
-    wedith = ARCH["dataset_nuscenes"]["sensor"]["img_prop"]["width"]
-    height =ARCH["dataset_nuscenes"]["sensor"]["img_prop"]["height"]
+        interp_target_rep_row = nn.Upsample(size=(height*2, wedith), mode='nearest')
     
     
-    # hist = np.zeros((nuscenes_parser.get_n_classes(), nuscenes_parser.get_n_classes()))
+    # hist = np.zeros((the_parser.get_n_classes(), the_parser.get_n_classes()))
 
     # testloader = data.DataLoader(cityscapesDataSet(args.data_dir, args.data_list, crop_size=(1024, 512), mean=IMG_MEAN, scale=False, mirror=False, set=args.set),
                                     # batch_size=1, shuffle=False, pin_memory=True)
 
     
     interp = nn.Upsample(size=(height, wedith), mode='bilinear', align_corners=True)
-    
-    # interp_target_rep_row = nn.Upsample(size=(height*2, wedith), mode='nearest')
 
-    ignore_classes = [0,7,8,10,16,18,19]
-    evaluator = iouEval(nuscenes_parser.get_n_classes(),device, ignore_classes)
+    evaluator = iouEval(the_parser.get_n_classes(),device, ignore_classes)
     
     iou = AverageMeter()
     
@@ -296,11 +362,11 @@ def main(restore_frm=None,outer_parser=None):
             in_vol = in_vol.to(device)
 
             if args.model == 'DeeplabMulti':
-                output1, output2 = model((in_vol))
+                output1, output2 = model(interp_target_rep_row(in_vol))
                                                 #.data[0]
                 output = (interp(output2))#.cpu().numpy()
             elif args.model == 'DeeplabVGG' or args.model == 'Oracle':
-                output = model((in_vol))
+                output = model(interp_target_rep_row(in_vol))
                                                #.data[0]
                 output = (interp(output))#.cpu().numpy()
 
@@ -330,7 +396,7 @@ def main(restore_frm=None,outer_parser=None):
                 depth_gt_np = None#(depth_gt_np * img_stds[0]) + img_means[0]
             
                 
-                out = make_log_img(depth_gt_np, output, nuscenes_parser.to_color, mask_np, gt_np)
+                out = make_log_img(depth_gt_np, output, the_parser.to_color, mask_np, gt_np)
                 # print(name)
                 save_iter = name[0]
                 if restore_frm!=None:
@@ -354,10 +420,10 @@ def main(restore_frm=None,outer_parser=None):
                 # print('Skipping: len(gt) = {:d}, len(pred) = {:d}, {:s}'.format(len(gt_np.flatten()), len(output.flatten()), name[0]))
                 # continue
             
-            # hist += fast_hist(gt_np.flatten(), output.flatten(), nuscenes_parser.get_n_classes())
+            # hist += fast_hist(gt_np.flatten(), output.flatten(), the_parser.get_n_classes())
             
             # if index > 0 and index % 10 == 0:
-                # print('{:d} / {:d}: {:0.2f}'.format(index, nuscenes_parser.get_valid_size(), 100*np.mean(per_class_iu(hist))))
+                # print('{:d} / {:d}: {:0.2f}'.format(index, the_parser.get_valid_size(), 100*np.mean(per_class_iu(hist))))
 
             # output_col = colorize_mask(output)
             # output = Image.fromarray(output)
@@ -370,8 +436,8 @@ def main(restore_frm=None,outer_parser=None):
         
         iou.update(jaccard.item(), 1)#in_vol.size(0))    
     # mIoUs = per_class_iu(hist)
-    # for ind_class in range(nuscenes_parser.get_n_classes()):
-        # print('===>' + nuscenes_parser.get_xentropy_class_string(ind_class) + ':\t' + str(round(mIoUs[ind_class] * 100, 2)))
+    # for ind_class in range(the_parser.get_n_classes()):
+        # print('===>' + the_parser.get_xentropy_class_string(ind_class) + ':\t' + str(round(mIoUs[ind_class] * 100, 2)))
     print('===> mIoU: ' + str(round(iou.avg * 100, 2)))
     return round(iou.avg * 100, 2)
 
