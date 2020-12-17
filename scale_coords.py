@@ -27,13 +27,15 @@ max_min_z = [0,0]
 
 max_min_emission = [0,0]
 
-mean_depth = 0.0          
-mean_x = 0.0
-mean_y = 0.0
-mean_z = 0.0
-mean_emmission = 0.0
-num_points = 0.0
+mean_depth = 0         
+mean_x = 0
+mean_y = 0
+mean_z = 0
+mean_emmission = 0
+num_points = 0
 max_points_scan = 0
+
+max_intensity_val = 0
 
 for i in range(0, len(mega_scan_files)):
     filename = mega_scan_files[i]
@@ -53,6 +55,9 @@ for i in range(0, len(mega_scan_files)):
     num_points = num_points + points.shape[0]
     # print(points.shape)
     # print("#points = " + str(num_points))
+            
+    if(max_intensity_val < np.max(remissions)):
+        max_intensity_val = np.max(remissions)
     
     mean_depth = mean_depth + np.sum(depth)
     mean_x = mean_x + np.sum((scan_x))
@@ -67,6 +72,7 @@ mean_y = mean_y / num_points
 mean_z = mean_z / num_points
 mean_emmission = mean_emmission / num_points
 
+print("max_intensity_val = " + str(max_intensity_val))
 print("#points = " + str(num_points))
 print("means->depth, x, y,z, emission")    
 print("mean_depth= " + str(mean_depth))
@@ -75,11 +81,11 @@ print("mean_y = " + str(mean_y))
 print("mean_z = " + str(mean_z))
 print("mean_emmission = " + str(mean_emmission))
 
-std_depth = 0.0
-std_x = 0.0
-std_y = 0.0
-std_z = 0.0
-std_emission = 0.0
+std_depth = 0
+std_x = 0
+std_y = 0
+std_z = 0
+std_emission = 0
 
 
 for i in range(0, len(mega_scan_files)):

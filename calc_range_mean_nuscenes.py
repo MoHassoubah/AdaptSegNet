@@ -58,13 +58,15 @@ nusc = NuScenes(version='v1.0-trainval', dataroot='C:/lidar_datasets/nuscenes', 
 # # # proj_H = 32
 # #############################################################
 
-mean_depth = 0.0          
-mean_x = 0.0
-mean_y = 0.0
-mean_z = 0.0
-mean_emmission = 0.0
-num_points = 0.0
+mean_depth = 0         
+mean_x = 0
+mean_y = 0
+mean_z = 0
+mean_emmission = 0
+num_points = 0
 max_points_scan = 0
+
+max_intensity_val = 0
 
 # print(nusc.lidarseg[0])
 
@@ -98,8 +100,8 @@ for idx in range(700):
         num_points = num_points + points.shape[0]
 
         
-        if(max_points_scan < points.shape[0]):
-            max_points_scan = points.shape[0]
+        # if(max_points_scan < points.shape[0]):
+            # max_points_scan = points.shape[0]
         #####################################################
         ####################################################
         # lidar_pc = LidarPointCloud.from_file(osp.join('C:/lidar_datasets/nuscenes', lidar_data["filename"]))
@@ -117,8 +119,8 @@ for idx in range(700):
         
         # num_points = num_points + llidar_pc.points.shape[1]
             
-        # if(max_points_scan < lidar_pc.points.shape[1]):
-            # max_points_scan = lidar_pc.points.shape[1]
+        if(max_intensity_val < np.max(remissions)):
+            max_intensity_val = np.max(remissions)
         
         # print("")
         # print("max_depth = " + str(np.max(depth)))
@@ -138,7 +140,7 @@ for idx in range(700):
         mean_x = mean_x + np.sum(scan_x)
         mean_y = mean_y + np.sum(scan_y)
         mean_z = mean_z + np.sum(scan_z)
-        mean_emmission = mean_emmission + np.sum(remissions)
+        mean_emmission = mean_emmission + np.sum(remissions/255.0)
         
         if(my_sample['next'] == ''):
             break
@@ -204,7 +206,7 @@ mean_emmission = mean_emmission / num_points
 # # mean_emmission = 17.73328291036439
 
 print("#points = " + str(num_points))
-print("max # points per scan = " + str(max_points_scan))
+print("max_intensity_val = " + str(max_intensity_val))
 print("means->depth, x, y,z, emission")    
 print("mean_depth= " + str(mean_depth))
 print("mean_x = " + str(mean_x))
@@ -212,11 +214,11 @@ print("mean_y = " + str(mean_y))
 print("mean_z = " + str(mean_z))
 print("mean_emmission = " + str(mean_emmission))
 
-std_depth = 0.0
-std_x = 0.0
-std_y = 0.0
-std_z = 0.0
-std_emission = 0.0
+std_depth = 0
+std_x = 0
+std_y = 0
+std_z = 0
+std_emission = 0
 
 for idx in range(700):
     my_scene = nusc.scene[idx]
@@ -262,7 +264,7 @@ for idx in range(700):
         std_x = std_x + (np.sum((scan_x - mean_x)**2)/num_points)
         std_y = std_y + (np.sum((scan_y - mean_y)**2)/num_points)
         std_z = std_z + (np.sum((scan_z - mean_z)**2)/num_points)
-        std_emission = std_emission + (np.sum((remissions - mean_emmission)**2)/num_points)
+        std_emission = std_emission + (np.sum(((remissions/255.0) - mean_emmission)**2)/num_points)
         
         if(my_sample['next'] == ''):
             break

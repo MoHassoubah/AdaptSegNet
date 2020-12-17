@@ -23,14 +23,14 @@ mean_depth= 9.3491331456874
 mean_x = -0.08765855820670747
 mean_y = -0.19636565646418108
 mean_z = -0.5109317943020222
-mean_emmission = 17.732149409822593
+mean_emmission = 0.06953784534727274  #old before 255 scalling =17.732149409822593
 
 /nStds->depth, x, y,z, emission
 std_depth = 12.374803659276289
 std_x = 10.171160265601255
 std_y = 11.561263922800938
 std_z = 1.7661922836642745
-std_emission = 22.50784445070556
+std_emission = 0.08826605718127242 #old before 255 scalling = 22.50784445070556
 
 in the vehicle frame
 x-kitti = y-nuscenes

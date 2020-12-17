@@ -400,7 +400,7 @@ def main():
     interp = nn.Upsample(size=(input_size[1], input_size[0]), mode='bilinear', align_corners=True)
     interp_target = nn.Upsample(size=(input_size_target[1], input_size_target[0]), mode='bilinear', align_corners=True)
     
-    interp_target_rep_row = nn.Upsample(size=(input_size_target[1]*2, input_size_target[0]), mode='nearest')
+    # interp_target_rep_row = nn.Upsample(size=(input_size_target[1]*2, input_size_target[0]), mode='nearest')
 
     # labels for adversarial training
     #what if we switched the labels?????????????
@@ -502,7 +502,7 @@ def main():
             in_vol, proj_mask, proj_labels, _, path_seq, path_name, _, _, _, _, _, _, _, _, _ = batch #images, labels, _, _ = batch
             in_vol = in_vol.to(device) #5channels input --#old RGB, 3xLxW
 
-            pred_target1, pred_target2 = model(interp_target_rep_row(in_vol))
+            pred_target1, pred_target2 = model(in_vol)
             pred_target1 = interp_target(pred_target1)
             pred_target2 = interp_target(pred_target2)
             
@@ -581,7 +581,7 @@ def main():
 
             loss_D2 = bce_loss(D_out2, torch.FloatTensor(D_out2.data.size()).fill_(target_label).to(device))
 
-            #what if we removed the /2?????????????
+            #what if we removed the /2 ?????????????
             loss_D1 = loss_D1 / args.iter_size / 2 # as if reducing the learning speed of the discriminator!
             loss_D2 = loss_D2 / args.iter_size / 2
 
