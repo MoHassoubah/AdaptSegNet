@@ -1,0 +1,18 @@
+discriminator
+target>>
+improved:
+truck +2
+other vehicle +0.8
+sidewalk 7+
+vegetation 2+
+
+missed:
+car double
+road 7+
+static man made 5+
+barrier 1+
+terrain 7+
+
+src>>
+improved:
+bycycle 0.03+

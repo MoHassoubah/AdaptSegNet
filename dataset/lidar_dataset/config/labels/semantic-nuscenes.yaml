@@ -109,7 +109,7 @@ learning_map:
   6 : 6     # "police_officer" mapped to "person" ---------------------mapped
   7 : 0     # "stroller" mapped to "unlabeled" ---------------------mapped
   8 : 0     # "wheelchair" mapped to "unlabeled" ---------------------mapped
-  9 : 14    # "barrier" mapped to "fence" ---------------------mapped
+  9 : 11    # "barrier" mapped to "fence" ---------------------mapped
   10: 0     # "debris" mapped to "unlabeled" ---------------------mapped
   11: 0     # "pushable_pullable" mapped to "unlabeled" ---------------------mapped
   12: 0    # "trafficcone" mapped to "unlabeled" ---------------------mapped
@@ -118,19 +118,19 @@ learning_map:
   15: 5     # "bus-bendy" mapped to "other-vehicle" ---------------------mapped
   16: 5     # "bus-rigid" mapped to "other-vehicle" ---------------------mapped
   17: 1     # "car" mapped to "car" ---------------------mapped
-  18: 5     # "vehicle-construction" mapped to "other-vehicle" ------------------mapped
+  18: 4     # "vehicle-construction" mapped to "truck" ------------------mapped
   19: 5     # "vehicle-ambulance" to "other-vehicle" ---------------------------------mapped
   20: 1     # "vehicle-police" to "car" ---------------------------------mapped
   21: 3     # "motorcycle" to "motorcycle" ---------------------------------mapped
   22: 5    # "trailer" to "other-vehicle" ---------------------------------mapped
   23: 4     # "truck" to "truck" ---------------------------------mapped
-  24: 9     # "flat-driveable_surface" to "road" ---------------------------------mapped
-  25: 12    # "flat-other" to "other-ground" ----------------------------mapped
-  26: 11    # "sidewalk" to "sidewalk" ------------------------------------mapped
-  27: 17    # "terrain" to "terrain" ------------------------mapped
-  28: 13    # "static-manmade" to "building" ------------------------------mapped
+  24: 7     # "flat-driveable_surface" to "road" ---------------------------------mapped
+  25: 9    # "flat-other" to "other-ground" ----------------------------mapped
+  26: 8    # "sidewalk" to "sidewalk" ------------------------------------mapped
+  27: 13    # "terrain" to "terrain" ------------------------mapped
+  28: 10    # "static-manmade" to "building" ------------------------------mapped
   29: 0     # "static-other" to "unlabeled" ------------------mapped
-  30: 15    # "vegetation" mapped to "vegetation" --------------mapped
+  30: 12    # "vegetation" mapped to "vegetation" --------------mapped
   31: 0     # "vehicle-ego" mapped to "unlabeled" -------------------mapped
 learning_map_inv: # inverse of previous map
   0: 0      # "unlabeled", and others ignored
@@ -140,19 +140,13 @@ learning_map_inv: # inverse of previous map
   4: 23     # "truck"
   5: 15     # "other-vehicle"
   6: 2      # "person"
-  7: 14     # "bicyclist"
-  8: 21     # "motorcyclist"
-  9: 24     # "road"
-  10: 24    # "parking"
-  11: 26    # "sidewalk"
-  12: 25    # "other-ground"
-  13: 28    # "building"
-  14: 9     # "fence"
-  15: 30    # "vegetation"
-  16: 30    # "trunk"
-  17: 27    # "terrain"
-  18: 28    # "pole"
-  19: 12    # "traffic-sign"
+  7: 24     # "road"
+  8: 26    # "sidewalk"
+  9: 25    # "other-ground"
+  10: 28    # "building"
+  11: 9     # "fence"
+  12: 30    # "vegetation"
+  13: 27    # "terrain"
 learning_ignore: # Ignore classes
   0: True      # "unlabeled", and others ignored
   1: False     # "car"
@@ -161,16 +155,10 @@ learning_ignore: # Ignore classes
   4: False     # "truck"
   5: False     # "other-vehicle"
   6: False     # "person"
-  7: True     # "bicyclist"
-  8: True     # "motorcyclist"
-  9: False     # "road"
-  10: True    # "parking"
-  11: False    # "sidewalk"
-  12: False    # "other-ground"
-  13: False    # "building"
-  14: False    # "fence"
-  15: False    # "vegetation"
-  16: True    # "trunk"
-  17: False    # "terrain"
-  18: True    # "pole"
-  19: True    # "traffic-sign"
+  7: False     # "road"
+  8: False    # "sidewalk"
+  9: False    # "other-ground"
+  10: False    # "building"
+  11: False    # "fence"
+  12: False    # "vegetation"
+  13: False    # "terrain"
