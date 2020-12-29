@@ -223,7 +223,6 @@ def make_log_img(pred, color_fn, mask, gt, target=False):
 
 
 
-
 def main():
     """Create the model and start the training."""
 
@@ -473,8 +472,7 @@ def main():
                     
                     mask_np = proj_mask[0].cpu().numpy()
                     gt_np = proj_labels[0].cpu().numpy()
-                    
-                
+                  
                     
                     out = make_log_img(output, kitti_parser.to_color, mask_np, gt_np)
                     # print(name)
@@ -528,17 +526,30 @@ def main():
             # print(pred_target1.shape)
             D_out1 = model_D1(F.softmax(pred_target1, dim=1))
             D_out2 = model_D2(F.softmax(pred_target2, dim=1))
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ADV LOSS
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            loss_adv_target1 = 0.0
+            for i_out in range(len(D_out1)):
+                loss_adv_target1 = bce_loss(D_out1[i_out], torch.FloatTensor(D_out1[i_out].data.size()).fill_(source_label).to(device)) + loss_adv_target1
 
-            loss_adv_target1 = bce_loss(D_out1, torch.FloatTensor(D_out1.data.size()).fill_(source_label).to(device))
+            loss_adv_target2 = 0.0
+            for i_out in range(len(D_out2)):
+                loss_adv_target2 = bce_loss(D_out2[i_out], torch.FloatTensor(D_out2[i_out].data.size()).fill_(source_label).to(device)) + loss_adv_target2
 
-            loss_adv_target2 = bce_loss(D_out2, torch.FloatTensor(D_out2.data.size()).fill_(source_label).to(device))
-
-            loss = args.lambda_adv_target1 * loss_adv_target1 + args.lambda_adv_target2 * loss_adv_target2
+            loss = 0.0
+            if(len(D_out1) !=0):
+                loss = args.lambda_adv_target1 * (loss_adv_target1/len(D_out1))
+            
+            if(len(D_out2) !=0):    
+                loss = loss + args.lambda_adv_target2 * (loss_adv_target2/len(D_out2))
             loss = loss / args.iter_size
-            #only parameters of the segmentation model updated, dicriminator parameters fixed at this point
-            loss.backward() #propagates the loss derivatives in the segmentator
-            loss_adv_target_value1 += loss_adv_target1.item() / args.iter_size
-            loss_adv_target_value2 += loss_adv_target2.item() / args.iter_size
+            if(loss !=0):
+                #only parameters of the segmentation model updated, dicriminator parameters fixed at this point
+                loss.backward() #propagates the loss derivatives in the segmentator
+                if(len(D_out1) !=0): # to avoid the error of :'float' object has no attribute 'item'
+                    loss_adv_target_value1 += loss_adv_target1.item() / args.iter_size/len(D_out1)
+                if(len(D_out2) !=0):
+                    loss_adv_target_value2 += loss_adv_target2.item() / args.iter_size/len(D_out2)
 
             # train D
 
@@ -552,24 +563,33 @@ def main():
             # train with source
             pred1 = pred1.detach()
             pred2 = pred2.detach()
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> SRC discriminator loss
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
             D_out1 = model_D1(F.softmax(pred1, dim=1))
             # print(pred2.shape)
             D_out2 = model_D2(F.softmax(pred2, dim=1))
 
-            loss_D1 = bce_loss(D_out1, torch.FloatTensor(D_out1.data.size()).fill_(source_label).to(device))
+            loss_D1 = 0.0
+            for i_out in range(len(D_out1)):
+                loss_D1 = bce_loss(D_out1[i_out], torch.FloatTensor(D_out1[i_out].data.size()).fill_(source_label).to(device))+loss_D1
 
-            loss_D2 = bce_loss(D_out2, torch.FloatTensor(D_out2.data.size()).fill_(source_label).to(device))
+            loss_D2 = 0.0
+            for i_out in range(len(D_out2)):
+                loss_D2 = bce_loss(D_out2[i_out], torch.FloatTensor(D_out2[i_out].data.size()).fill_(source_label).to(device))+loss_D2
 
-            loss_D1 = loss_D1 / args.iter_size / 2
-            loss_D2 = loss_D2 / args.iter_size / 2
+            if(len(D_out1) !=0):
+                loss_D1 = loss_D1 / args.iter_size / 2 /len(D_out1)
+                loss_D1.backward()
+                loss_D_value1 += loss_D1.item()
+                
+            if(len(D_out2) !=0):
+                loss_D2 = loss_D2 / args.iter_size / 2 /len(D_out2)
+                loss_D2.backward()
+                loss_D_value2 += loss_D2.item()
 
-            loss_D1.backward()
-            loss_D2.backward()
-
-            loss_D_value1 += loss_D1.item()
-            loss_D_value2 += loss_D2.item()
-
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> TRGT discriminator loss
+            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             # train with target
             pred_target1 = pred_target1.detach()
             pred_target2 = pred_target2.detach()
@@ -577,19 +597,26 @@ def main():
             D_out1 = model_D1(F.softmax(pred_target1, dim=1))
             D_out2 = model_D2(F.softmax(pred_target2, dim=1))
 
-            loss_D1 = bce_loss(D_out1, torch.FloatTensor(D_out1.data.size()).fill_(target_label).to(device))
+            loss_D1 = 0.0
+            for i_out in range(len(D_out1)):
+                loss_D1 = bce_loss(D_out1[i_out], torch.FloatTensor(D_out1[i_out].data.size()).fill_(target_label).to(device)) + loss_D1
 
-            loss_D2 = bce_loss(D_out2, torch.FloatTensor(D_out2.data.size()).fill_(target_label).to(device))
+            loss_D2 = 0.0
+            for i_out in range(len(D_out2)):
+                loss_D2 = bce_loss(D_out2[i_out], torch.FloatTensor(D_out2[i_out].data.size()).fill_(target_label).to(device)) + loss_D2
 
+            if(len(D_out1) !=0):
             #what if we removed the /2 ?????????????
-            loss_D1 = loss_D1 / args.iter_size / 2 # as if reducing the learning speed of the discriminator!
-            loss_D2 = loss_D2 / args.iter_size / 2
+                loss_D1 = loss_D1 / args.iter_size / 2/len(D_out1) # as if reducing the learning speed of the discriminator!
+                loss_D1.backward()
+                loss_D_value1 += loss_D1.item()
+            
+            if(len(D_out2) !=0):
+                loss_D2 = loss_D2 / args.iter_size / 2/len(D_out2)
 
-            loss_D1.backward()
-            loss_D2.backward()
+                loss_D2.backward()
 
-            loss_D_value1 += loss_D1.item()
-            loss_D_value2 += loss_D2.item()
+                loss_D_value2 += loss_D2.item()
 
         optimizer.step()
         optimizer_D1.step()
