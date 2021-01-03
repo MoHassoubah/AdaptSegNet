@@ -39,6 +39,21 @@ z-kitti = z- nuscenes
 
 total number annotated lidar points in nuscenes = 1,185,656,192
 
+###################
+unified stats nuscenes and kitti
+
+men_depth= 11.039574198634394
+mean_x = -0.10773551148884525
+mean_y = 0.2852114305382882
+mean_z = -0.9156061583942551
+mean_emmission = 0.23185242992955762
+
+std_depth= 10.73604713170873
+std_x = 11.738680572302824
+std_y = 9.894223244298592
+std_z = 1.1637323016271324
+std_emmission = 0.13209460876341042
+
 ################distance <= 65m#######################
 
 nuscenes
