@@ -29,7 +29,7 @@ from ioueval import *
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
-DATA_DIRECTORY = 'C:/lidar_datasets/nuscenes'   #'./data/Cityscapes'
+DATA_DIRECTORY = 'C:/lidar_datasets/kitti_data' #nuscenes   #'./data/Cityscapes'
 DATA_LIST_PATH = './dataset/cityscapes_list/val.txt'
 SAVE_PATH = './result/nuscenes'
 
@@ -107,6 +107,9 @@ def get_arguments():
       default='dataset/lidar_dataset/config/arch/sensor_dataset.yaml',
       help='Architecture yaml cfg file. See /config/arch for sample. No default!',
     )
+    
+    parser.add_argument("--stop-before", type=int, default=40000,
+                        help="stop before this itiration")
     return parser.parse_args()
     
 def get_mpl_colormap(cmap_name):
@@ -162,31 +165,39 @@ def getValidData():
       quit()
 
       
+    # # open data config file
+    # try:
+      # print("Opening data config file %s" % args.data_nuscenes_cfg)
+      # DATA_nuscenes = yaml.safe_load(open(args.data_nuscenes_cfg, 'r'))
+    # except Exception as e:
+      # print(e)
+      # print("Error opening data yaml file.")
+      # quit()
     # open data config file
     try:
-      print("Opening data config file %s" % args.data_nuscenes_cfg)
-      DATA_nuscenes = yaml.safe_load(open(args.data_nuscenes_cfg, 'r'))
+      print("Opening data config file %s" % args.data_kitti_cfg)
+      DATA_kitti = yaml.safe_load(open(args.data_kitti_cfg, 'r'))
     except Exception as e:
       print(e)
       print("Error opening data yaml file.")
       quit()
       
     nuscenes_parser = Parser(root=args.data_dir,
-                      train_sequences=None,
-                      valid_sequences=(700,850),
-                      test_sequences=None,
-                      labels=DATA_nuscenes["labels"],
-                      color_map=DATA_nuscenes["color_map"],
-                      learning_map=DATA_nuscenes["learning_map"],
-                      learning_map_inv=DATA_nuscenes["learning_map_inv"],
-                      sensor=ARCH["dataset_nuscenes"]["sensor"],
-                      max_points=ARCH["dataset_nuscenes"]["max_points"],
-                      batch_size=ARCH["train"]["batch_size"],
-                      workers=ARCH["train"]["workers"],
-                      max_iters=None,
-                      gt=True,
-                      shuffle_train=True,
-                      nuscenes_dataset=True)
+                          train_sequences=None,
+                          valid_sequences=DATA_kitti["split"]["valid"],
+                          test_sequences=None,
+                          labels=DATA_kitti["labels"],
+                          color_map=DATA_kitti["color_map"],
+                          learning_map=DATA_kitti["learning_map"],
+                          learning_map_inv=DATA_kitti["learning_map_inv"],
+                          sensor=ARCH["dataset_kitti_trgt"]["sensor"],
+                          max_points=ARCH["dataset_kitti_trgt"]["max_points"],
+                          batch_size=ARCH["train"]["batch_size"],
+                          workers=ARCH["train"]["workers"],
+                          max_iters=None,
+                          gt=True,
+                          shuffle_train=True,
+                          nuscenes_dataset=False)
                       
     return nuscenes_parser
     
@@ -255,23 +266,31 @@ def main(restore_frm=None,outer_parser=None):
               print(e)
               print("Error opening data yaml file.")
               quit()
+            # open data config file
+            try:
+              print("Opening data config file %s" % args.data_kitti_cfg)
+              DATA_kitti = yaml.safe_load(open(args.data_kitti_cfg, 'r'))
+            except Exception as e:
+              print(e)
+              print("Error opening data yaml file.")
+              quit()
               
             nuscenes_parser = Parser(root=args.data_dir,
-                                  train_sequences=None,
-                                  valid_sequences=(700,850),
-                                  test_sequences=None,
-                                  labels=DATA_nuscenes["labels"],
-                                  color_map=DATA_nuscenes["color_map"],
-                                  learning_map=DATA_nuscenes["learning_map"],
-                                  learning_map_inv=DATA_nuscenes["learning_map_inv"],
-                                  sensor=ARCH["dataset_nuscenes"]["sensor"],
-                                  max_points=ARCH["dataset_nuscenes"]["max_points"],
-                                  batch_size=ARCH["train"]["batch_size"],
-                                  workers=ARCH["train"]["workers"],
-                                  max_iters=None,
-                                  gt=True,
-                                  shuffle_train=True,
-                                  nuscenes_dataset=True)
+                          train_sequences=None,
+                          valid_sequences=DATA_kitti["split"]["valid"],
+                          test_sequences=None,
+                          labels=DATA_kitti["labels"],
+                          color_map=DATA_kitti["color_map"],
+                          learning_map=DATA_kitti["learning_map"],
+                          learning_map_inv=DATA_kitti["learning_map_inv"],
+                          sensor=ARCH["dataset_kitti_trgt"]["sensor"],
+                          max_points=ARCH["dataset_kitti_trgt"]["max_points"],
+                          batch_size=ARCH["train"]["batch_size"],
+                          workers=ARCH["train"]["workers"],
+                          max_iters=None,
+                          gt=True,
+                          shuffle_train=True,
+                          nuscenes_dataset=False)
                                   
             valid_loader  = nuscenes_parser.get_valid_set()
             ignore_classes = [0,7,8,10,16,18,19]

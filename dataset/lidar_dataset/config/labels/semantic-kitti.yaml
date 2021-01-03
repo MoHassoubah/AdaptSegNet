@@ -184,6 +184,18 @@ split: # sequence numbers
     - 7
     - 9
     - 10
+  train_trgt:
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+    - 18
+    - 19
+    - 20
+    - 21
   valid:
     - 8
   test:

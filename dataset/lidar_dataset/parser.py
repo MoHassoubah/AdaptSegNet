@@ -141,10 +141,17 @@ class SemanticKitti(Dataset):
                 my_sample = nusc.get('sample', my_sample['next'])
     
     for i in range(len(scan_files_accum)):
-        self.files.append({
-            "scan": scan_files_accum[i],
-            "label": label_files_accum[i]
-        })
+        
+        if self.gt:
+            self.files.append({
+                "scan": scan_files_accum[i],
+                "label": label_files_accum[i]
+            })
+        else:
+            self.files.append({
+                "scan": scan_files_accum[i]
+            })
+            
         
     
 

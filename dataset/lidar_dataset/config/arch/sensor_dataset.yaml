@@ -50,6 +50,32 @@ dataset_kitti:
       - 9.25  #6.91
       - 0.86
       - 0.14  #0.16
+      
+
+dataset_kitti_trgt:
+  labels: "kitti"
+  scans: "kitti"
+  max_points: 150000 # max of any scan in dataset
+  sensor:
+    name: "HDL64"
+    type: "spherical" # projective
+    fov_up: 3
+    fov_down: -25 
+    img_prop:
+      width: 1024
+      height: 32
+    img_means: #range,x,y,z,signal
+      - 11.96  #12.12
+      - -0.075 #10.88 #replaced old by new
+      - 0.576  #0.23
+      - -1.072 #-1.04
+      - 0.262
+    img_stds: #range,x,y,z,signal
+      - 10.55 #12.32
+      - 12.48 #11.47
+      - 9.822  #6.91
+      - 0.853
+      - 0.153  #0.16
 
 
 

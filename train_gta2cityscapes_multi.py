@@ -273,22 +273,22 @@ def main():
       print("Error opening data yaml file.")
       quit()
     
-    nuscenes_parser = Parser(root=args.data_dir_target,
-                          train_sequences=(0,700),
+    nuscenes_parser = Parser(root=args.data_dir,
+                          train_sequences=DATA_kitti["split"]["train_trgt"],
                           valid_sequences=None,
                           test_sequences=None,
-                          labels=DATA_nuscenes["labels"],
-                          color_map=DATA_nuscenes["color_map"],
-                          learning_map=DATA_nuscenes["learning_map"],
-                          learning_map_inv=DATA_nuscenes["learning_map_inv"],
-                          sensor=ARCH["dataset_nuscenes"]["sensor"],
-                          max_points=ARCH["dataset_nuscenes"]["max_points"],
+                          labels=DATA_kitti["labels"],
+                          color_map=DATA_kitti["color_map"],
+                          learning_map=DATA_kitti["learning_map"],
+                          learning_map_inv=DATA_kitti["learning_map_inv"],
+                          sensor=ARCH["dataset_kitti_trgt"]["sensor"],
+                          max_points=ARCH["dataset_kitti_trgt"]["max_points"],
                           batch_size=ARCH["train"]["batch_size"],
                           workers=ARCH["train"]["workers"],
                           max_iters=args.num_steps * args.iter_size * args.batch_size,
-                          gt=True,
+                          gt=False,
                           shuffle_train=True,
-                          nuscenes_dataset=True)
+                          nuscenes_dataset=False)
 
     w, h = map(int, args.input_size.split(','))
     input_size = (w, h)
@@ -499,7 +499,7 @@ def main():
             # images = images.to(device)
             batch = nuscenes_parser.get_train_batch()#trainloader_iter.__next__()
 
-            in_vol, proj_mask, proj_labels, _, path_seq, path_name, _, _, _, _, _, _, _, _, _ = batch #images, labels, _, _ = batch
+            in_vol, proj_mask, _, _, path_seq, path_name, _, _, _, _, _, _, _, _, _ = batch #images, labels, _, _ = batch
             in_vol = in_vol.to(device) #5channels input --#old RGB, 3xLxW
 
             pred_target1, pred_target2 = model(in_vol)
@@ -519,7 +519,7 @@ def main():
                     
                 
                     
-                    out = make_log_img(output, nuscenes_parser.to_color, mask_np, gt_np)
+                    out = make_log_img(output, nuscenes_parser.to_color, mask_np, None,True)
                     # print(name)
                     name_2_save = os.path.join(SAVE_PATH_nuscenes, 'trgt_'+str(i_iter) + '.png')
                     cv2.imwrite(name_2_save, out)

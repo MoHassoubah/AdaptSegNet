@@ -5,12 +5,12 @@ import numpy as np
 import argparse
 
     
-parser = argparse.ArgumentParser(description="get results")
+parser_args = argparse.ArgumentParser(description="get results")
 
-parser.add_argument("--stop-before", type=int, default=95000,
+parser_args.add_argument("--stop-before", type=int, default=40000,
                     help="stop before this itiration")
                     
-args = parser.parse_args()
+args = parser_args.parse_args()
 
 
 if __name__ == '__main__':#was added to overcome the thread issue

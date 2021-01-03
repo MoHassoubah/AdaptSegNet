@@ -39,3 +39,57 @@ z-kitti = z- nuscenes
 
 total number annotated lidar points in nuscenes = 1,185,656,192
 
+################distance <= 65m#######################
+
+nuscenes
+
+#points = 968282894.0
+max # points per scan = 34790
+means->depth, x, y,z, emission
+mean_depth= 8.845122261297663
+mean_x = -0.08516241393297491
+mean_y = -0.17693694327346268
+mean_z = -0.5558906392400739
+mean_emmission = 17.506095458296922
+
+/nStds->depth, x, y,z, emission
+std_depth = 10.919203481086404
+std_x = 10.20899862445092
+std_y = 11.604289731773973
+std_z = 1.7733370004630362
+std_emission = 22.39938733066059
+
+#####################
+kitti
+#points = 2834905066
+means->depth, x, y,z, emission
+mean_depth= 11.327937898705988
+mean_x = -0.06973732229418061
+mean_y = 0.4327966130284703
+mean_z = -1.0573141345518804
+mean_emmission = 0.2887427742065845
+
+/nStds->depth, x, y,z, emission
+std_depth = 9.230032178559977
+std_x = 11.528030136926201
+std_y = 8.865352809113636
+std_z = 0.8459450640387868
+std_emission = 0.14310333929760774
+
+#################
+kitti-test
+max_points_scan = 128726
+#points = 2449921930
+means->depth, x, y,z, emission
+mean_depth= 11.962754984196579
+mean_x = -0.07551494676947361
+mean_y = 0.5766263778782715
+mean_z = -1.0723938263763113
+mean_emmission = 0.2622866742864945
+
+/nStds->depth, x, y,z, emission
+std_depth = 10.554045864929039
+std_x = 12.482133335940105
+std_y = 9.822211834624225
+std_z = 0.8530316250075537
+std_emission = 0.15332106295108625
