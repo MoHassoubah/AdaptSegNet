@@ -107,6 +107,8 @@ def get_arguments():
       default='dataset/lidar_dataset/config/arch/sensor_dataset.yaml',
       help='Architecture yaml cfg file. See /config/arch for sample. No default!',
     )
+    parser.add_argument("--stop-before", type=int, default=95000,
+                        help="stop before this itiration")
     return parser.parse_args()
     
 def get_mpl_colormap(cmap_name):
