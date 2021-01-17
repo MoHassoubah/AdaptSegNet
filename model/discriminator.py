@@ -7,17 +7,17 @@ import cv2
 
 class FCDiscriminator(nn.Module):
     
-    def __init__(self, num_classes, ndf = 64):
+    def __init__(self, num_classes, ndf = 32):
         super(FCDiscriminator, self).__init__()
         self.num_classes = num_classes
         
         self.conv_list = nn.ModuleList()
         for i in range(num_classes):
-            # self.conv_list.append(nn.Conv2d(num_classes, ndf, kernel_size=(2,4), stride=2, padding=(0,1)))
+            self.conv_list.append(nn.Conv2d(num_classes, ndf, kernel_size=(2,4), stride=2, padding=(0,1)))
             # self.conv2 = nn.Conv2d(ndf, ndf*2, kernel_size=(2,4), stride=2, padding=(0,1))
             # self.conv3 = nn.Conv2d(ndf*2, ndf*4, kernel_size=(2,4), stride=2, padding=1)
             # self.conv4 = nn.Conv2d(ndf*4, ndf*8, kernel_size=(2,4), stride=2, padding=1)
-            self.conv_list.append(nn.Conv2d(num_classes, 1, kernel_size=(2,4), stride=2, padding=(0,1)))
+            self.conv_list.append(nn.Conv2d(ndf, 1, kernel_size=(2,4), stride=2, padding=(0,1)))
             
         self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 		#self.up_sample = nn.Upsample(scale_factor=32, mode='bilinear')
@@ -63,16 +63,16 @@ class FCDiscriminator(nn.Module):
                 w= contour_list[i_class][i_contour][2]
                 h= contour_list[i_class][i_contour][3]
                 
-                if(h>=2 and w>=4):
-                    # x_out = self.conv_list[2*i_class](x_[:,:,y:y+h+1,x:x+w+1])
-                    # x_out = self.leaky_relu(x_out)
+                if(h>=4 and w>=8):
+                    x_out = self.conv_list[2*i_class](x_[:,:,y:y+h+1,x:x+w+1])
+                    x_out = self.leaky_relu(x_out)
                     # x = self.conv2(x)
                     # x = self.leaky_relu(x)
                     # x = self.conv3(x)
                     # x = self.leaky_relu(x)
                     # x = self.conv4(x)
                     # x = self.leaky_relu(x)
-                    x_out = self.conv_list[(i_class)](x_[:,:,y:y+h+1,x:x+w+1])
+                    x_out = self.conv_list[(2*i_class)+1](x_out)
                     #x = self.up_sample(x)
                     #x = self.sigmoid(x) 
                     disc_out.append(x_out)
